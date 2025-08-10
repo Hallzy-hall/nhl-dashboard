@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client, Client
+from utils.db_queries import load_player_data
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -28,9 +28,8 @@ def load_player_data():
     player_df = pd.DataFrame(response.data)
     return player_df
 
-# Load the data once
-player_df = load_player_data()
-# MODIFIED: Changed 'player_name' to 'full_name'
+# Now just call the clean, imported function
+player_df = load_player_data(supabase)
 player_names = player_df['full_name'].tolist() if not player_df.empty else []
 
 
