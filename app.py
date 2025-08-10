@@ -1,80 +1,93 @@
 import streamlit as st
 import pandas as pd
+# NEW: Import the Supabase library
+from supabase import create_client, Client
 
 # --- PAGE CONFIGURATION ---
-# Use st.set_page_config() as the first Streamlit command in your script.
 st.set_page_config(
     page_title="NHL Lineup Simulation Tool",
     page_icon="🏒",
-    layout="wide" # "wide" or "centered"
+    layout="wide"
 )
 
-# --- MOCK DATA (Replace with your Supabase calls) ---
-# For now, we'll use simple lists. Later, you'll fetch this from Supabase.
-mock_players = ["Connor McDavid", "Auston Matthews", "Nathan MacKinnon", "Cale Makar", "Igor Shesterkin", "Sidney Crosby"]
-mock_teams = ["Edmonton Oilers", "Toronto Maple Leafs"]
+# --- NEW: INITIALIZE SUPABASE CONNECTION ---
+# The st.secrets dict is populated with the secrets you just added.
+try:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(url, key)
+except KeyError:
+    st.error("Supabase credentials not found. Please add them to your Streamlit Secrets.")
+    st.stop()
+
+
+# --- NEW: DATA FETCHING FUNCTION ---
+# The @st.cache_data decorator is crucial. It tells Streamlit to run this
+# function only once and cache the result. Without it, your app would hit
+# the database every time a user interacts with a widget.
+@st.cache_data
+def load_player_data():
+    """Fetches player names and IDs from Supabase and returns as a DataFrame."""
+    # Replace 'players' with the actual name of your table in Supabase.
+    response = supabase.table('players').select('player_id, player_name').execute()
+    player_df = pd.DataFrame(response.data)
+    return player_df
+
+# Load the data once
+player_df = load_player_data()
+# Create a simple list of names for the selectboxes
+player_names = player_df['player_name'].tolist() if not player_df.empty else []
+
 
 # --- SIDEBAR ---
-# A sidebar is a great place for global controls
 with st.sidebar:
     st.header("Game Setup")
+    # For now, we'll keep the mock teams
+    mock_teams = ["Edmonton Oilers", "Toronto Maple Leafs"]
     home_team = st.selectbox("Home Team", options=mock_teams)
     away_team = st.selectbox("Away Team", options=mock_teams, index=1)
     
     st.divider()
     
     st.header("Player Editor")
-    player_to_edit = st.selectbox("Select Player", options=mock_players)
-    if st.button(f"Edit {player_to_edit}'s Ratings"):
-        # Placeholder for the modal/pop-up functionality
-        st.info(f"Pop-up for editing {player_to_edit} would appear here.")
+    # MODIFIED: Use the real player names from the database
+    selected_player_name = st.selectbox("Select Player", options=player_names)
+
+    # --- THIS IS THE KEY LOGIC FOR NAME -> ID ---
+    # Find the player_id that corresponds to the selected player_name
+    if selected_player_name:
+        selected_player_id = player_df[player_df['player_name'] == selected_player_name]['player_id'].iloc[0]
         
+        # We can display the ID here just to prove it works. You can remove this later.
+        st.write(f"You selected: **{selected_player_name}**")
+        st.write(f"Associated `player_id`: **{selected_player_id}**")
+        
+        if st.button(f"Edit {selected_player_name}'s Ratings"):
+            st.info(f"Pop-up for editing Player ID {selected_player_id} would appear here.")
+
+
 # --- MAIN PAGE ---
 st.title("Lineup Builder")
 st.write(f"Building lines for **{home_team}** vs. **{away_team}**")
 
-# Create a two-column layout for Even Strength and Special Teams
 col_ev, col_pp = st.columns(2)
 
 with col_ev:
     st.subheader("Even Strength")
-    
-    # Example for Line 1
     st.markdown("**Line 1**")
     line1_cols = st.columns(3)
-    line1_cols[0].selectbox("LW", options=mock_players, key="l1_lw", help="Select the Left Wing for Line 1")
-    line1_cols[1].selectbox("C", options=mock_players, key="l1_c", help="Select the Center for Line 1")
-    line1_cols[2].selectbox("RW", options=mock_players, key="l1_rw", help="Select the Right Wing for Line 1")
-    
-    # Add more lines as needed...
-    st.markdown("**Line 2**") # ...etc
+    # MODIFIED: Use the real player names
+    line1_cols[0].selectbox("LW", options=player_names, key="l1_lw")
+    line1_cols[1].selectbox("C", options=player_names, key="l1_c")
+    line1_cols[2].selectbox("RW", options=player_names, key="l1_rw")
 
 with col_pp:
     st.subheader("Special Teams")
-    
-    # Example for PP1
     st.markdown("**Power Play 1**")
     pp1_cols = st.columns(3)
-    pp1_cols[0].selectbox("F1", options=mock_players, key="pp1_f1")
-    pp1_cols[1].selectbox("F2", options=mock_players, key="pp1_f2")
-    pp1_cols[2].selectbox("F3", options=mock_players, key="pp1_f3")
-    # Add defensemen...
+    # MODIFIED: Use the real player names
+    pp1_cols[0].selectbox("F1", options=player_names, key="pp1_f1")
+    pp1_cols[1].selectbox("F2", options=player_names, key="pp1_f2")
+    pp1_cols[2].selectbox("F3", options=player_names, key="pp1_f3")
     
-# --- SIMULATION ---
-st.divider()
-st.header("Simulation Control")
-
-if st.button("▶️ Run Game Simulation", type="primary", use_container_width=True):
-    with st.spinner("Running simulation... please wait."):
-        # This is where you will call your Python simulation model
-        # For now, we'll just show some mock results.
-        import time
-        time.sleep(3) # Simulate a long calculation
-        
-        st.success("Simulation Complete!")
-        
-        # Display results
-        res_cols = st.columns(3)
-        res_cols[0].metric(label=f"{home_team} Win Probability", value="58.3%")
-        res_cols[1].metric(label=f"{away_team} Win Probability", value="41.7%")
-        res_cols[2].metric(label="Predicted Score", value="4-2")
+# ... The rest of your app code ...
