@@ -4,10 +4,6 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import pandas as pd
 
-if 'db_connection' not in st.session_state:
-    # Use st.connection with type='sql' and your secrets file name.
-    conn = st.connection("mydb", type="sql")
-    st.session_state.db_connection = conn
 
 # Import page rendering functions and queries
 from app_pages import dashboard_page, lineup_builder_page

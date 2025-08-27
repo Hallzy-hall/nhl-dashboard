@@ -12,9 +12,6 @@ from src.data_processing import structure_dashboard_data_for_sim
 from src.simulation_engine import run_multiple_simulations
 from src.calculations import calculate_betting_odds
 
-if 'db_connection' not in st.session_state:
-    conn = st.connection("mydb", type="sql")
-    st.session_state.db_connection = conn
 
 # --- HELPER FUNCTIONS ---
 
