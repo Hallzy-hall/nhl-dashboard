@@ -1,0 +1,1678 @@
+{
+  "copyright": "NHL and the NHL Shield are registered trademarks of the National Hockey League. NHL and NHL team marks are the property of the NHL and its teams. © NHL 2023. All Rights Reserved.",
+  "gamePk": 2023020001,
+  "link": "/api/v1/game/2023020001/feed/live",
+  "metaData": {
+    "wait": 10,
+    "timeStamp": "20231011_025741"
+  },
+  "gameData": {
+    "game": {
+      "pk": 2023020001,
+      "season": "20232024",
+      "type": "R"
+    },
+    "datetime": {
+      "dateTime": "2023-10-10T21:30:00Z",
+      "endDateTime": "2023-10-11T00:10:29Z"
+    },
+    "status": {
+      "abstractGameState": "Final",
+      "codedGameState": "7",
+      "detailedState": "Final",
+      "statusCode": "7",
+      "startTimeTBD": false
+    },
+    "teams": {
+      "away": {
+        "id": 18,
+        "name": "Nashville Predators",
+        "link": "/api/v1/teams/18",
+        "venue": {
+          "id": 5030,
+          "name": "Bridgestone Arena",
+          "link": "/api/v1/venues/5030",
+          "city": "Nashville",
+          "timeZone": {
+            "id": "America/Chicago",
+            "offset": -5,
+            "tz": "CDT"
+          }
+        },
+        "abbreviation": "NSH",
+        "triCode": "NSH",
+        "teamName": "Predators",
+        "locationName": "Nashville",
+        "firstYearOfPlay": "1998",
+        "division": {
+          "id": 16,
+          "name": "Central",
+          "nameShort": "CEN",
+          "link": "/api/v1/divisions/16",
+          "abbreviation": "C"
+        },
+        "conference": {
+          "id": 5,
+          "name": "Western",
+          "link": "/api/v1/conferences/5"
+        },
+        "franchise": {
+          "franchiseId": 34,
+          "teamName": "Predators",
+          "link": "/api/v1/franchises/34"
+        },
+        "shortName": "Nashville",
+        "officialSiteUrl": "http://www.nashvillepredators.com/",
+        "franchiseId": 34,
+        "active": true
+      },
+      "home": {
+        "id": 14,
+        "name": "Tampa Bay Lightning",
+        "link": "/api/v1/teams/14",
+        "venue": {
+          "id": 5017,
+          "name": "AMALIE Arena",
+          "link": "/api/v1/venues/5017",
+          "city": "Tampa",
+          "timeZone": {
+            "id": "America/New_York",
+            "offset": -4,
+            "tz": "EDT"
+          }
+        },
+        "abbreviation": "TBL",
+        "triCode": "TBL",
+        "teamName": "Lightning",
+        "locationName": "Tampa Bay",
+        "firstYearOfPlay": "1992",
+        "division": {
+          "id": 17,
+          "name": "Atlantic",
+          "nameShort": "ATL",
+          "link": "/api/v1/divisions/17",
+          "abbreviation": "A"
+        },
+        "conference": {
+          "id": 6,
+          "name": "Eastern",
+          "link": "/api/v1/conferences/6"
+        },
+        "franchise": {
+          "franchiseId": 31,
+          "teamName": "Lightning",
+          "link": "/api/v1/franchises/31"
+        },
+        "shortName": "Tampa Bay",
+        "officialSiteUrl": "http://www.tampabaylightning.com/",
+        "franchiseId": 31,
+        "active": true
+      }
+    },
+    "players": {
+      "ID8474151": {
+        "id": 8474151,
+        "fullName": "Ryan McDonagh",
+        "link": "/api/v1/people/8474151",
+        "firstName": "Ryan",
+        "lastName": "McDonagh",
+        "primaryNumber": "27",
+        "birthDate": "1989-06-13",
+        "currentAge": 34,
+        "birthCity": "St. Paul",
+        "birthStateProvince": "MN",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 1\"",
+        "weight": 215,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8474564": {
+        "id": 8474564,
+        "fullName": "Steven Stamkos",
+        "link": "/api/v1/people/8474564",
+        "firstName": "Steven",
+        "lastName": "Stamkos",
+        "primaryNumber": "91",
+        "birthDate": "1990-02-07",
+        "currentAge": 33,
+        "birthCity": "Markham",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 0\"",
+        "weight": 191,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": true,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8474568": {
+        "id": 8474568,
+        "fullName": "Luke Schenn",
+        "link": "/api/v1/people/8474568",
+        "firstName": "Luke",
+        "lastName": "Schenn",
+        "primaryNumber": "2",
+        "birthDate": "1989-11-02",
+        "currentAge": 33,
+        "birthCity": "Saskatoon",
+        "birthStateProvince": "SK",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 2\"",
+        "weight": 229,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8474600": {
+        "id": 8474600,
+        "fullName": "Roman Josi",
+        "link": "/api/v1/people/8474600",
+        "firstName": "Roman",
+        "lastName": "Josi",
+        "primaryNumber": "59",
+        "birthDate": "1990-06-01",
+        "currentAge": 33,
+        "birthCity": "Bern",
+        "birthCountry": "CHE",
+        "nationality": "CHE",
+        "height": "6' 2\"",
+        "weight": 201,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": true,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8474679": {
+        "id": 8474679,
+        "fullName": "Gustav Nyquist",
+        "link": "/api/v1/people/8474679",
+        "firstName": "Gustav",
+        "lastName": "Nyquist",
+        "primaryNumber": "14",
+        "birthDate": "1989-09-01",
+        "currentAge": 34,
+        "birthCity": "Halmstad",
+        "birthCountry": "SWE",
+        "nationality": "SWE",
+        "height": "5' 11\"",
+        "weight": 184,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8475158": {
+        "id": 8475158,
+        "fullName": "Ryan O'Reilly",
+        "link": "/api/v1/people/8475158",
+        "firstName": "Ryan",
+        "lastName": "O'Reilly",
+        "primaryNumber": "90",
+        "birthDate": "1991-02-07",
+        "currentAge": 32,
+        "birthCity": "Clinton",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 0\"",
+        "weight": 206,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8475167": {
+        "id": 8475167,
+        "fullName": "Victor Hedman",
+        "link": "/api/v1/people/8475167",
+        "firstName": "Victor",
+        "lastName": "Hedman",
+        "primaryNumber": "77",
+        "birthDate": "1990-12-18",
+        "currentAge": 32,
+        "birthCity": "Ornskoldsvik",
+        "birthCountry": "SWE",
+        "nationality": "SWE",
+        "height": "6' 7\"",
+        "weight": 244,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8475177": {
+        "id": 8475177,
+        "fullName": "Calvin de Haan",
+        "link": "/api/v1/people/8475177",
+        "firstName": "Calvin",
+        "lastName": "de Haan",
+        "primaryNumber": "44",
+        "birthDate": "1991-05-09",
+        "currentAge": 32,
+        "birthCity": "Carp",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 1\"",
+        "weight": 196,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8475197": {
+        "id": 8475197,
+        "fullName": "Tyson Barrie",
+        "link": "/api/v1/people/8475197",
+        "firstName": "Tyson",
+        "lastName": "Barrie",
+        "primaryNumber": "22",
+        "birthDate": "1991-07-26",
+        "currentAge": 32,
+        "birthCity": "Victoria",
+        "birthStateProvince": "BC",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "5' 11\"",
+        "weight": 197,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8476453": {
+        "id": 8476453,
+        "fullName": "Nikita Kucherov",
+        "link": "/api/v1/people/8476453",
+        "firstName": "Nikita",
+        "lastName": "Kucherov",
+        "primaryNumber": "86",
+        "birthDate": "1993-06-17",
+        "currentAge": 30,
+        "birthCity": "Maykop",
+        "birthCountry": "RUS",
+        "nationality": "RUS",
+        "height": "5' 11\"",
+        "weight": 181,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "R",
+          "name": "Right Wing",
+          "type": "Forward",
+          "abbreviation": "RW"
+        }
+      },
+      "ID8476822": {
+        "id": 8476822,
+        "fullName": "Luke Glendening",
+        "link": "/api/v1/people/8476822",
+        "firstName": "Luke",
+        "lastName": "Glendening",
+        "primaryNumber": "11",
+        "birthDate": "1989-04-28",
+        "currentAge": 34,
+        "birthCity": "Grand Rapids",
+        "birthStateProvince": "MI",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "5' 11\"",
+        "weight": 191,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8476887": {
+        "id": 8476887,
+        "fullName": "Filip Forsberg",
+        "link": "/api/v1/people/8476887",
+        "firstName": "Filip",
+        "lastName": "Forsberg",
+        "primaryNumber": "9",
+        "birthDate": "1994-08-13",
+        "currentAge": 29,
+        "birthCity": "Ostervala",
+        "birthCountry": "SWE",
+        "nationality": "SWE",
+        "height": "6' 2\"",
+        "weight": 205,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8476925": {
+        "id": 8476925,
+        "fullName": "Colton Sissons",
+        "link": "/api/v1/people/8476925",
+        "firstName": "Colton",
+        "lastName": "Sissons",
+        "primaryNumber": "10",
+        "birthDate": "1993-11-05",
+        "currentAge": 29,
+        "birthCity": "North Vancouver",
+        "birthStateProvince": "BC",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 1\"",
+        "weight": 200,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8477035": {
+        "id": 8477035,
+        "fullName": "Matt Tomkins",
+        "link": "/api/v1/people/8477035",
+        "firstName": "Matt",
+        "lastName": "Tomkins",
+        "primaryNumber": "90",
+        "birthDate": "1994-06-19",
+        "currentAge": 29,
+        "birthCity": "Sherwood Park",
+        "birthStateProvince": "AB",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 3\"",
+        "weight": 195,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": true,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "G",
+          "name": "Goalie",
+          "type": "Goalie",
+          "abbreviation": "G"
+        }
+      },
+      "ID8477353": {
+        "id": 8477353,
+        "fullName": "Tyler Motte",
+        "link": "/api/v1/people/8477353",
+        "firstName": "Tyler",
+        "lastName": "Motte",
+        "primaryNumber": "64",
+        "birthDate": "1995-03-10",
+        "currentAge": 28,
+        "birthCity": "St. Clair",
+        "birthStateProvince": "MI",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "5' 10\"",
+        "weight": 192,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8477424": {
+        "id": 8477424,
+        "fullName": "Juuse Saros",
+        "link": "/api/v1/people/8477424",
+        "firstName": "Juuse",
+        "lastName": "Saros",
+        "primaryNumber": "74",
+        "birthDate": "1995-04-19",
+        "currentAge": 28,
+        "birthCity": "Forssa",
+        "birthCountry": "FIN",
+        "nationality": "FIN",
+        "height": "5' 11\"",
+        "weight": 180,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "G",
+          "name": "Goalie",
+          "type": "Goalie",
+          "abbreviation": "G"
+        }
+      },
+      "ID8477426": {
+        "id": 8477426,
+        "fullName": "Nicholas Paul",
+        "link": "/api/v1/people/8477426",
+        "firstName": "Nicholas",
+        "lastName": "Paul",
+        "primaryNumber": "20",
+        "birthDate": "1995-03-20",
+        "currentAge": 28,
+        "birthCity": "Mississauga",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 3\"",
+        "weight": 223,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8477839": {
+        "id": 8477839,
+        "fullName": "Conor Sheary",
+        "link": "/api/v1/people/8477839",
+        "firstName": "Conor",
+        "lastName": "Sheary",
+        "primaryNumber": "73",
+        "birthDate": "1992-06-08",
+        "currentAge": 31,
+        "birthCity": "Winchester",
+        "birthStateProvince": "MA",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "5' 9\"",
+        "weight": 179,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8477992": {
+        "id": 8477992,
+        "fullName": "Jonas Johansson",
+        "link": "/api/v1/people/8477992",
+        "firstName": "Jonas",
+        "lastName": "Johansson",
+        "primaryNumber": "31",
+        "birthDate": "1995-09-19",
+        "currentAge": 28,
+        "birthCity": "Gavle",
+        "birthCountry": "SWE",
+        "nationality": "SWE",
+        "height": "6' 5\"",
+        "weight": 218,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "G",
+          "name": "Goalie",
+          "type": "Goalie",
+          "abbreviation": "G"
+        }
+      },
+      "ID8478010": {
+        "id": 8478010,
+        "fullName": "Brayden Point",
+        "link": "/api/v1/people/8478010",
+        "firstName": "Brayden",
+        "lastName": "Point",
+        "primaryNumber": "21",
+        "birthDate": "1996-03-13",
+        "currentAge": 27,
+        "birthCity": "Calgary",
+        "birthStateProvince": "AB",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "5' 11\"",
+        "weight": 185,
+        "active": true,
+        "alternateCaptain": true,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8478178": {
+        "id": 8478178,
+        "fullName": "Darren Raddysh",
+        "link": "/api/v1/people/8478178",
+        "firstName": "Darren",
+        "lastName": "Raddysh",
+        "primaryNumber": "43",
+        "birthDate": "1996-02-28",
+        "currentAge": 27,
+        "birthCity": "Toronto",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 1\"",
+        "weight": 201,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8478416": {
+        "id": 8478416,
+        "fullName": "Erik Cernak",
+        "link": "/api/v1/people/8478416",
+        "firstName": "Erik",
+        "lastName": "Cernak",
+        "primaryNumber": "81",
+        "birthDate": "1997-05-28",
+        "currentAge": 26,
+        "birthCity": "Kosice",
+        "birthCountry": "SVK",
+        "nationality": "SVK",
+        "height": "6' 4\"",
+        "weight": 224,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8478438": {
+        "id": 8478438,
+        "fullName": "Tommy Novak",
+        "link": "/api/v1/people/8478438",
+        "firstName": "Tommy",
+        "lastName": "Novak",
+        "primaryNumber": "82",
+        "birthDate": "1997-04-28",
+        "currentAge": 26,
+        "birthCity": "St. Paul",
+        "birthStateProvince": "MN",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 1\"",
+        "weight": 191,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8478468": {
+        "id": 8478468,
+        "fullName": "Jeremy Lauzon",
+        "link": "/api/v1/people/8478468",
+        "firstName": "Jeremy",
+        "lastName": "Lauzon",
+        "primaryNumber": "3",
+        "birthDate": "1997-04-28",
+        "currentAge": 26,
+        "birthCity": "Val-d'Or",
+        "birthStateProvince": "QC",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 2\"",
+        "weight": 210,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8478508": {
+        "id": 8478508,
+        "fullName": "Yakov Trenin",
+        "link": "/api/v1/people/8478508",
+        "firstName": "Yakov",
+        "lastName": "Trenin",
+        "primaryNumber": "13",
+        "birthDate": "1997-01-13",
+        "currentAge": 26,
+        "birthCity": "Chelyabinsk",
+        "birthCountry": "RUS",
+        "nationality": "RUS",
+        "height": "6' 2\"",
+        "weight": 201,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8478519": {
+        "id": 8478519,
+        "fullName": "Anthony Cirelli",
+        "link": "/api/v1/people/8478519",
+        "firstName": "Anthony",
+        "lastName": "Cirelli",
+        "primaryNumber": "71",
+        "birthDate": "1997-07-15",
+        "currentAge": 26,
+        "birthCity": "Etobicoke",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 0\"",
+        "weight": 194,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8478851": {
+        "id": 8478851,
+        "fullName": "Alexandre Carrier",
+        "link": "/api/v1/people/8478851",
+        "firstName": "Alexandre",
+        "lastName": "Carrier",
+        "primaryNumber": "45",
+        "birthDate": "1996-10-08",
+        "currentAge": 26,
+        "birthCity": "Quebec City",
+        "birthStateProvince": "QC",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "5' 11\"",
+        "weight": 174,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8479410": {
+        "id": 8479410,
+        "fullName": "Mikhail Sergachev",
+        "link": "/api/v1/people/8479410",
+        "firstName": "Mikhail",
+        "lastName": "Sergachev",
+        "primaryNumber": "98",
+        "birthDate": "1998-06-25",
+        "currentAge": 25,
+        "birthCity": "Nizhnekamsk",
+        "birthCountry": "RUS",
+        "nationality": "RUS",
+        "height": "6' 3\"",
+        "weight": 220,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8479542": {
+        "id": 8479542,
+        "fullName": "Brandon Hagel",
+        "link": "/api/v1/people/8479542",
+        "firstName": "Brandon",
+        "lastName": "Hagel",
+        "primaryNumber": "38",
+        "birthDate": "1998-08-27",
+        "currentAge": 25,
+        "birthCity": "Saskatoon",
+        "birthStateProvince": "SK",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 0\"",
+        "weight": 179,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8479591": {
+        "id": 8479591,
+        "fullName": "Michael Eyssimont",
+        "link": "/api/v1/people/8479591",
+        "firstName": "Michael",
+        "lastName": "Eyssimont",
+        "primaryNumber": "23",
+        "birthDate": "1996-09-09",
+        "currentAge": 27,
+        "birthCity": "Littleton",
+        "birthStateProvince": "CO",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 0\"",
+        "weight": 196,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8479661": {
+        "id": 8479661,
+        "fullName": "Tanner Jeannot",
+        "link": "/api/v1/people/8479661",
+        "firstName": "Tanner",
+        "lastName": "Jeannot",
+        "primaryNumber": "84",
+        "birthDate": "1997-05-29",
+        "currentAge": 26,
+        "birthCity": "Oxbow",
+        "birthStateProvince": "SK",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 2\"",
+        "weight": 217,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8479996": {
+        "id": 8479996,
+        "fullName": "Cody Glass",
+        "link": "/api/v1/people/8479996",
+        "firstName": "Cody",
+        "lastName": "Glass",
+        "primaryNumber": "8",
+        "birthDate": "1999-04-01",
+        "currentAge": 24,
+        "birthCity": "Winnipeg",
+        "birthStateProvince": "MB",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 3\"",
+        "weight": 206,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8480246": {
+        "id": 8480246,
+        "fullName": "Nick Perbix",
+        "link": "/api/v1/people/8480246",
+        "firstName": "Nick",
+        "lastName": "Perbix",
+        "primaryNumber": "48",
+        "birthDate": "1998-06-15",
+        "currentAge": 25,
+        "birthCity": "Elk River",
+        "birthStateProvince": "MN",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 4\"",
+        "weight": 218,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "D",
+          "name": "Defenseman",
+          "type": "Defenseman",
+          "abbreviation": "D"
+        }
+      },
+      "ID8480748": {
+        "id": 8480748,
+        "fullName": "Kiefer Sherwood",
+        "link": "/api/v1/people/8480748",
+        "firstName": "Kiefer",
+        "lastName": "Sherwood",
+        "primaryNumber": "44",
+        "birthDate": "1995-03-31",
+        "currentAge": 28,
+        "birthCity": "Columbus",
+        "birthStateProvince": "OH",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 0\"",
+        "weight": 194,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8480947": {
+        "id": 8480947,
+        "fullName": "Kevin Lankinen",
+        "link": "/api/v1/people/8480947",
+        "firstName": "Kevin",
+        "lastName": "Lankinen",
+        "primaryNumber": "32",
+        "birthDate": "1995-04-28",
+        "currentAge": 28,
+        "birthCity": "Helsinki",
+        "birthCountry": "FIN",
+        "nationality": "FIN",
+        "height": "6' 2\"",
+        "weight": 185,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "G",
+          "name": "Goalie",
+          "type": "Goalie",
+          "abbreviation": "G"
+        }
+      },
+      "ID8481577": {
+        "id": 8481577,
+        "fullName": "Philip Tomasino",
+        "link": "/api/v1/people/8481577",
+        "firstName": "Philip",
+        "lastName": "Tomasino",
+        "primaryNumber": "26",
+        "birthDate": "2001-07-28",
+        "currentAge": 22,
+        "birthCity": "Mississauga",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "6' 0\"",
+        "weight": 191,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8481704": {
+        "id": 8481704,
+        "fullName": "Juuso Parssinen",
+        "link": "/api/v1/people/8481704",
+        "firstName": "Juuso",
+        "lastName": "Parssinen",
+        "primaryNumber": "75",
+        "birthDate": "2001-02-01",
+        "currentAge": 22,
+        "birthCity": "Hameenlinna",
+        "birthCountry": "FIN",
+        "nationality": "FIN",
+        "height": "6' 3\"",
+        "weight": 212,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      },
+      "ID8482062": {
+        "id": 8482062,
+        "fullName": "Cole Smith",
+        "link": "/api/v1/people/8482062",
+        "firstName": "Cole",
+        "lastName": "Smith",
+        "primaryNumber": "36",
+        "birthDate": "1995-10-28",
+        "currentAge": 27,
+        "birthCity": "Brainerd",
+        "birthStateProvince": "MN",
+        "birthCountry": "USA",
+        "nationality": "USA",
+        "height": "6' 3\"",
+        "weight": 195,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "L",
+          "name": "Left Wing",
+          "type": "Forward",
+          "abbreviation": "LW"
+        }
+      },
+      "ID8482146": {
+        "id": 8482146,
+        "fullName": "Luke Evangelista",
+        "link": "/api/v1/people/8482146",
+        "firstName": "Luke",
+        "lastName": "Evangelista",
+        "primaryNumber": "77",
+        "birthDate": "2002-02-21",
+        "currentAge": 21,
+        "birthCity": "Toronto",
+        "birthStateProvince": "ON",
+        "birthCountry": "CAN",
+        "nationality": "CAN",
+        "height": "5' 11\"",
+        "weight": 183,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": false,
+        "shootsCatches": "R",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 18,
+          "name": "Nashville Predators",
+          "link": "/api/v1/teams/18",
+          "triCode": "NSH"
+        },
+        "primaryPosition": {
+          "code": "R",
+          "name": "Right Wing",
+          "type": "Forward",
+          "abbreviation": "RW"
+        }
+      },
+      "ID8484325": {
+        "id": 8484325,
+        "fullName": "Waltteri Merela",
+        "link": "/api/v1/people/8484325",
+        "firstName": "Waltteri",
+        "lastName": "Merela",
+        "primaryNumber": "39",
+        "birthDate": "1998-07-06",
+        "currentAge": 25,
+        "birthCity": "Ylojarvi",
+        "birthCountry": "FIN",
+        "nationality": "FIN",
+        "height": "6' 2\"",
+        "weight": 200,
+        "active": true,
+        "alternateCaptain": false,
+        "captain": false,
+        "rookie": true,
+        "shootsCatches": "L",
+        "rosterStatus": "Y",
+        "currentTeam": {
+          "id": 14,
+          "name": "Tampa Bay Lightning",
+          "link": "/api/v1/teams/14",
+          "triCode": "TBL"
+        },
+        "primaryPosition": {
+          "code": "C",
+          "name": "Center",
+          "type": "Forward",
+          "abbreviation": "C"
+        }
+      }
+    },
+    "venue": {
+      "id": 5017,
+      "name": "AMALIE Arena",
+      "link": "/api/v1/venues/5017"
+    }
+  },
+  "liveData": {
+    "plays": {
+      "allPlays": [],
+      "scoringPlays": [],
+      "penaltyPlays": [],
+      "playsByPeriod": []
+    },
+    "linescore": {
+      "currentPeriod": 3,
+      "currentPeriodOrdinal": "3rd",
+      "currentPeriodTimeRemaining": "Final",
+      "periods": [],
+      "shootoutInfo": {
+        "away": {
+          "scores": 0,
+          "attempts": 0
+        },
+        "home": {
+          "scores": 0,
+          "attempts": 0
+        }
+      },
+      "teams": {
+        "home": {
+          "goals": 0,
+          "shotsOnGoal": 0,
+          "goaliePulled": false,
+          "numSkaters": 5,
+          "powerPlay": false
+        },
+        "away": {
+          "goals": 0,
+          "shotsOnGoal": 0,
+          "goaliePulled": false,
+          "numSkaters": 5,
+          "powerPlay": false
+        }
+      },
+      "powerPlayStrength": "Even",
+      "hasShootout": false,
+      "intermissionInfo": {
+        "intermissionTimeRemaining": 0,
+        "intermissionTimeElapsed": 0,
+        "inIntermission": false
+      },
+      "powerPlayInfo": {
+        "situationTimeRemaining": 0,
+        "situationTimeElapsed": 30,
+        "inSituation": false
+      }
+    },
+    "boxscore": {
+      "teams": {
+        "away": {
+          "team": {
+            "id": 18,
+            "name": "Nashville Predators",
+            "link": "/api/v1/teams/18",
+            "abbreviation": "NSH",
+            "triCode": "NSH"
+          },
+          "teamStats": {
+            "teamSkaterStats": {
+              "goals": 3,
+              "pim": 10,
+              "shots": 28,
+              "powerPlayPercentage": "0.0",
+              "powerPlayGoals": 0.0,
+              "powerPlayOpportunities": 4.0,
+              "faceOffWinPercentage": "50.0",
+              "blocked": 23,
+              "takeaways": 8,
+              "giveaways": 8,
+              "hits": 31
+            }
+          },
+          "players": {},
+          "goalies": [],
+          "skaters": [],
+          "onIce": [],
+          "onIcePlus": [],
+          "scratches": [],
+          "penaltyBox": [],
+          "coaches": [
+            {
+              "person": {
+                "fullName": "Andrew Brunette",
+                "link": "/api/v1/people/null"
+              },
+              "position": {
+                "code": "HC",
+                "name": "Head Coach",
+                "type": "Head Coach",
+                "abbreviation": "Head Coach"
+              }
+            }
+          ]
+        },
+        "home": {
+          "team": {
+            "id": 14,
+            "name": "Tampa Bay Lightning",
+            "link": "/api/v1/teams/14",
+            "abbreviation": "TBL",
+            "triCode": "TBL"
+          },
+          "teamStats": {
+            "teamSkaterStats": {
+              "goals": 5,
+              "pim": 6,
+              "shots": 29,
+              "powerPlayPercentage": "50.0",
+              "powerPlayGoals": 2.0,
+              "powerPlayOpportunities": 4.0,
+              "faceOffWinPercentage": "50.0",
+              "blocked": 7,
+              "takeaways": 6,
+              "giveaways": 10,
+              "hits": 17
+            }
+          },
+          "players": {},
+          "goalies": [],
+          "skaters": [],
+          "onIce": [],
+          "onIcePlus": [],
+          "scratches": [],
+          "penaltyBox": [],
+          "coaches": [
+            {
+              "person": {
+                "fullName": "Jon Cooper",
+                "link": "/api/v1/people/null"
+              },
+              "position": {
+                "code": "HC",
+                "name": "Head Coach",
+                "type": "Head Coach",
+                "abbreviation": "Head Coach"
+              }
+            }
+          ]
+        }
+      },
+      "officials": [
+        {
+          "official": {
+            "id": 2190,
+            "fullName": "Gord Dwyer",
+            "link": "/api/v1/officials/2190"
+          },
+          "officialType": "Referee"
+        },
+        {
+          "official": {
+            "id": 4637,
+            "fullName": "Carter Sandlak",
+            "link": "/api/v1/officials/4637"
+          },
+          "officialType": "Referee"
+        },
+        {
+          "official": {
+            "id": 4929,
+            "fullName": "Ryan Jackson",
+            "link": "/api/v1/officials/4929"
+          },
+          "officialType": "Linesman"
+        },
+        {
+          "official": {
+            "id": 5642,
+            "fullName": "Kilian McNamara",
+            "link": "/api/v1/officials/5642"
+          },
+          "officialType": "Linesman"
+        }
+      ]
+    },
+    "decisions": {
+      "winner": {
+        "id": 8477992,
+        "fullName": "Jonas Johansson",
+        "link": "/api/v1/people/8477992"
+      },
+      "loser": {
+        "id": 8477424,
+        "fullName": "Juuse Saros",
+        "link": "/api/v1/people/8477424"
+      },
+      "firstStar": {
+        "id": 8476453,
+        "fullName": "Nikita Kucherov",
+        "link": "/api/v1/people/8476453"
+      },
+      "secondStar": {
+        "id": 8477426,
+        "fullName": "Nicholas Paul",
+        "link": "/api/v1/people/8477426"
+      },
+      "thirdStar": {
+        "id": 8475158,
+        "fullName": "Ryan O'Reilly",
+        "link": "/api/v1/people/8475158"
+      }
+    },
+    "shifts": {
+      "data": [],
+      "gameId": 2023020001
+    }
+  }
+}
