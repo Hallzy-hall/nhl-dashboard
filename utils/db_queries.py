@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import json
 import numpy as np
+from io import StringIO
 from supabase import create_client, Client
 
 def _create_supabase_client():
@@ -241,7 +242,6 @@ def log_rating_change(player_id, player_name, rating_name, old_value, new_value,
     try:
         supabase = _create_supabase_client()
         supabase.table('rating_change_log').insert({
-            # FIX: Ensure player_id is an integer to match the database schema
             'player_id': int(player_id), 
             'player_name': player_name, 
             'rating_name': rating_name,
@@ -278,7 +278,6 @@ def get_full_goalie_data(team_id: int):
         return pd.DataFrame()
     try:
         supabase = _create_supabase_client()
-        # Call the SQL function you already wrote
         response = supabase.rpc('get_full_goalie_data', {'team_id_param': int(team_id)}).execute()
         return pd.DataFrame(response.data)
     except Exception as e:
@@ -290,15 +289,13 @@ def save_coach_ratings(team_id: int, ratings_payload: dict):
     try:
         supabase = _create_supabase_client()
         supabase.table('coaches').update(ratings_payload).eq('team_id', int(team_id)).execute()
-        st.cache_data.clear() # Clear cache to ensure data is fresh on next load
+        st.cache_data.clear()
     except Exception as e:
         st.error(f"Error saving coach ratings: {e}")
 
 def save_simulation_results(game_id: int, results: dict):
     """Saves a simulation result dictionary to the database."""
     try:
-        # Convert pandas DataFrames within the dictionary to JSON strings
-        # This is a crucial step for serialization
         serializable_results = results.copy()
         for key, value in serializable_results.items():
             if isinstance(value, pd.DataFrame):
@@ -307,8 +304,6 @@ def save_simulation_results(game_id: int, results: dict):
         json_data = json.dumps(serializable_results, cls=NumpyEncoder)
 
         supabase = _create_supabase_client()
-        # Upsert ensures that if a result for a game_id exists, it's updated.
-        # Otherwise, a new one is inserted.
         supabase.table('simulation_results').upsert({
             'game_id': int(game_id),
             'results_data': json_data
@@ -327,18 +322,14 @@ def load_simulation_results(game_id: int):
             results_json = response.data[0]['results_data']
             loaded_results = json.loads(results_json)
 
-            # --- CORRECTED DESERIALIZATION LOGIC ---
-            # Iterate through the loaded dictionary and convert any JSON strings back to DataFrames
             for key, value in loaded_results.items():
                 if isinstance(value, str):
                     try:
-                        # A better check to see if the string is a serialized DataFrame
                         if '"columns"' in value and '"data"' in value:
-                             loaded_results[key] = pd.read_json(value, orient='split')
+                            loaded_results[key] = pd.read_json(StringIO(value), orient='split')
                     except Exception:
-                        # If it fails, leave it as a string
                         pass
-            
+
             return loaded_results
         return None
     except Exception as e:
@@ -348,7 +339,6 @@ def load_simulation_results(game_id: int):
 def save_dashboard_state(game_id: int, team_type: str, team_data: dict):
     """Saves the relevant dashboard state for one team to the database."""
     try:
-        # Prepare the payload with data converted to JSON strings
         payload = {
             f'{team_type}_lineup': team_data['lineup'].to_json(orient='split'),
             f'{team_type}_pp_lineup': team_data['pp_lineup'].to_json(orient='split'),
@@ -357,7 +347,6 @@ def save_dashboard_state(game_id: int, team_type: str, team_data: dict):
         }
 
         supabase = _create_supabase_client()
-        # Use upsert to create or update the state for the game_id
         supabase.table('dashboard_state').upsert({
             'game_id': int(game_id),
             **payload
@@ -379,4 +368,55 @@ def load_dashboard_state(game_id: int):
     except Exception as e:
         st.error(f"Error loading dashboard state: {e}")
         return None
-    
+
+@st.cache_data
+def get_player_shooting_actuals(player_ids: list):
+    """
+    Fetches the real-world (actuals) 5v5 shooting stats for a list of players
+    by calling a PostgreSQL function in Supabase.
+    """
+    if not player_ids:
+        return pd.DataFrame()
+    try:
+        clean_player_ids = [int(pid) for pid in player_ids]
+        supabase = _create_supabase_client()
+        response = supabase.rpc('get_player_shooting_actuals', {'player_ids_param': clean_player_ids}).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Error fetching player shooting actuals: {e}")
+        return pd.DataFrame()
+
+@st.cache_data
+def get_player_possession_actuals(player_ids: list):
+    """
+    Fetches the real-world (actuals) 5v5 possession and playmaking stats for a list of players
+    by calling a PostgreSQL function in Supabase.
+    """
+    if not player_ids:
+        return pd.DataFrame()
+    try:
+        clean_player_ids = [int(pid) for pid in player_ids]
+        supabase = _create_supabase_client()
+        response = supabase.rpc('get_player_possession_actuals', {'player_ids_param': clean_player_ids}).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Error fetching player possession actuals: {e}")
+        return pd.DataFrame()
+
+# --- NEW FUNCTION FOR TRANSITION TAB ---
+@st.cache_data
+def get_player_transition_actuals(player_ids: list):
+    """
+    Fetches the real-world (actuals) 5v5 transition stats for a list of players
+    by calling a PostgreSQL function in Supabase.
+    """
+    if not player_ids:
+        return pd.DataFrame()
+    try:
+        clean_player_ids = [int(pid) for pid in player_ids]
+        supabase = _create_supabase_client()
+        response = supabase.rpc('get_player_transition_actuals', {'player_ids_param': clean_player_ids}).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Error fetching player transition actuals: {e}")
+        return pd.DataFrame()

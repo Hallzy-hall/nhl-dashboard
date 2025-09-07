@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 import json
+from io import StringIO # IMPORT THIS
 from src.definitions import all_definitions
 from src.calculations import calculate_line_score
 
@@ -112,7 +113,8 @@ def _apply_saved_state(team_type: str, saved_state: dict):
     # A helper to safely read json that might be a DataFrame
     def read_df_from_json(json_string):
         try:
-            return pd.read_json(json_string, orient='split')
+            # UPDATED LINE TO FIX WARNING
+            return pd.read_json(StringIO(json_string), orient='split')
         except (ValueError, TypeError):
             return pd.DataFrame() # Return empty df if there's an issue
 
@@ -470,24 +472,24 @@ def render_team_ui(team_type: str, teams_df: pd.DataFrame):
 
             id_col, name_col = st.columns([1, 4])
             with id_col:
-    # This is now a button that opens the editor
+                # This is now a button that opens the editor
                 st.button(
-            label=str(coach_info.get('coach_id', 'N/A')),
-            key=f"edit_coach_{team_type}",
-            on_click=toggle_coach_editor,
-            args=(team_type,),
-            use_container_width=True
-            )
+                    label=str(coach_info.get('coach_id', 'N/A')),
+                    key=f"edit_coach_{team_type}",
+                    on_click=toggle_coach_editor,
+                    args=(team_type,),
+                    use_container_width=True
+                )
             with name_col:
                 st.text_input(
                     "Coach", value=coach_info.get('coach', 'N/A'), disabled=True,
                     key=f"{team_type}_coach_name", label_visibility="collapsed"
-            )
+                )
 
-# Call the editor if its state is true
+            # Call the editor if its state is true
             if team_data.get('show_coach_edit_modal'):
                 _render_coach_editor(team_type, team_data)
-           
+            
         es_tab, pp_tab, pk_tab = st.tabs(["Even Strength", "Power Play", "Penalty Kill"])
         with es_tab:
             for name, pos in all_definitions.items():

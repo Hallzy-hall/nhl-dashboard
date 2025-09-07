@@ -2,11 +2,11 @@
 BASE_HAZARD_RATES = {
     # Puck Possession & Transition
     # MODIFIED: Replaced shot_rush and shot_cycle with danger-zone specific rates
-    'shot_high_danger': 80.0,
-    'shot_medium_danger': 150.0,
-    'shot_low_danger': 180.0,
-    'pass_attempt': 1125.0,
-    'turnover': 110.0,
+    'shot_high_danger': 54.0,
+    'shot_medium_danger': 90,
+    'shot_low_danger': 120,
+    'pass_attempt': 1100.0,
+    'turnover': 10.0,
     'controlled_exit': 650.0,
     'dump_out_exit': 550.0,
 
@@ -15,7 +15,7 @@ BASE_HAZARD_RATES = {
     'puck_out_of_play': 40.0,
 
     # Penalties
-    'minor_penalty': 5.5,
+    'minor_penalty': 5.75,
     'major_penalty': 0.1,
     'line_change': 100.0,
 }
@@ -28,11 +28,11 @@ SIMULATION_PARAMETERS = {
         'impact_factor': 0.20,
     },
     'even_strength_logic': {
-        'zone_entry_hazard': 150.0,
+        'zone_entry_hazard': 200.0,
     },
     'pp_logic': {
         'zone_entry_hazard': 450.0,
-        'shot_multiplier': 2.5,
+        'shot_multiplier': 2.0,
         'pass_multiplier': 2.0,
         'turnover_multiplier': 0.5,
         'five_on_three_shot_multiplier': 4.0,
@@ -48,9 +48,9 @@ SIMULATION_PARAMETERS = {
     },
     'shot_resolution': {
         'base_block_prob': 0.15,
-        'base_miss_prob': 0.25,
+        'base_miss_prob': 0.46,
         # MODIFIED: Removed base_xg values, as they are now handled by the goalie model
-        'pp_goal_prob_bonus': 1.1, # This can be repurposed or removed later
+        'pp_goal_prob_bonus': 1.2, # This can be repurposed or removed later
         'base_rebound_prob': 0.3,
         'primary_assist_prob': 0.9,
         'secondary_assist_prob_es': 0.55,
