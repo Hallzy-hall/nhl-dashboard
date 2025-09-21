@@ -1,3 +1,4 @@
+# Updated simulation_engine.py
 import numpy as np
 import pandas as pd
 import random
@@ -22,6 +23,8 @@ class PlayerProfile:
     pp_playmaking: int = 1000; pp_zone_entry: int = 1000; pp_finishing: int = 1000
     pp_rebound_creation: int = 1000; pk_shot_suppression: int = 1000; pk_clearing_ability: int = 1000
     pk_shot_blocking: int = 1000
+    # Added new rating below
+    entry_volume: int = 1000
 
 class GameSimulator:
     def __init__(self, home_team_data, away_team_data):
@@ -52,7 +55,23 @@ class GameSimulator:
         self._change_lines('away', 'F1', 'D1')
 
     def _initialize_stat_trackers(self):
-        stat_template = lambda: { 'TOI': 0.0, 'Goals': 0, 'Assists': 0, 'Shots': 0, 'Shot Attempts': 0, 'Blocks': 0, '+/-': 0, 'Penalty Minutes': 0, 'iHDCF': 0, 'iMDCF': 0, 'iLDCF': 0, 'OnIce_CF': 0, 'OnIce_HDCA': 0, 'OnIce_MDCA': 0, 'OnIce_LDCA': 0, 'xG_for': 0.0, 'ReboundsCreated': 0, 'PenaltiesDrawn': 0, 'ControlledEntries': 0, 'ControlledExits': 0, 'OnIce_EntryAttempts_Against': 0, 'OnIce_ControlledEntries_Against': 0, 'ForecheckBreakups': 0, 'PK_Clears': 0, 'xG_against': 0.0, 'Goals_against': 0, 'HD_shots_against': 0, 'HD_goals_against': 0, 'HD_xG_against': 0.0, 'MD_shots_against': 0, 'MD_goals_against': 0, 'MD_xG_against': 0.0, 'LD_shots_against': 0, 'LD_goals_against': 0, 'LD_xG_against': 0.0, 'Saves': 0, 'ReboundsAllowed': 0, 'Freezes': 0, 'Giveaways': 0, 'Takeaways': 0, 'Shots_Off_Cycle': 0, 'Assists_Off_Cycle': 0, 'Faceoffs_Won': 0, 'Faceoffs_Taken': 0 }
+        stat_template = lambda: {
+            'TOI': 0.0, 'Goals': 0, 'Assists': 0, 'Shots': 0, 'Shot Attempts': 0,
+            'Blocks': 0, '+/-': 0, 'Penalty Minutes': 0, 'iHDCF': 0, 'iMDCF': 0,
+            'iLDCF': 0, 'OnIce_CF': 0, 'OnIce_HDCF': 0, 'OnIce_MDCF': 0, 'OnIce_LDCF': 0,
+            'OnIce_HDCA': 0, 'OnIce_MDCA': 0, 'OnIce_LDCA': 0,
+            'xG_for': 0.0, 'ReboundsCreated': 0, 'PenaltiesDrawn': 0, 'ControlledEntries': 0,
+            'ControlledExits': 0, 'OnIce_EntryAttempts_Against': 0,
+            'OnIce_ControlledEntries_Against': 0, 'ForecheckBreakups': 0, 'PK_Clears': 0,
+            'xG_against': 0.0, 'Goals_against': 0, 'HD_shots_against': 0,
+            'HD_goals_against': 0, 'HD_xG_against': 0.0, 'MD_shots_against': 0,
+            'MD_goals_against': 0, 'MD_xG_against': 0.0, 'LD_shots_against': 0,
+            'LD_goals_against': 0, 'LD_xG_against': 0.0, 'Saves': 0, 'ReboundsAllowed': 0,
+            'Freezes': 0, 'Giveaways': 0, 'Takeaways': 0, 'Shots_Off_Cycle': 0,
+            'Assists_Off_Cycle': 0, 'Faceoffs_Won': 0, 'Faceoffs_Taken': 0,
+            'MinorPenaltiesTaken': 0, 'MajorPenaltiesTaken': 0,
+            'EntryDenials': 0, 'FailedEntries': 0
+        }
         self.home_player_stats = { p.player_id: { 'Player': p.name, 'Total': stat_template(), 'ES': stat_template(), 'PP': stat_template(), 'PK': stat_template() } for p in self.home_players_dict.values() }
         self.away_player_stats = { p.player_id: { 'Player': p.name, 'Total': stat_template(), 'ES': stat_template(), 'PP': stat_template(), 'PK': stat_template() } for p in self.away_players_dict.values() }
         self.home_goalie_stats = stat_template()
@@ -65,6 +84,38 @@ class GameSimulator:
         if for_team == 'home': return 'PP' if self.home_skaters > self.away_skaters else 'PK'
         if for_team == 'away': return 'PP' if self.away_skaters > self.home_skaters else 'PK'
         return 'ES'
+
+    def _get_player_rating(self, player_id, base_rating_name):
+        """
+        Retrieves a player's rating, dynamically selecting the correct one based on game state.
+        Falls back to the base rating if a specialized one doesn't exist.
+        """
+        team_type = 'home' if player_id in self.home_players_dict else 'away'
+        game_state = self._get_game_state(team_type)
+        player = self.home_players_dict[player_id] if team_type == 'home' else self.away_players_dict[player_id]
+
+        # Maps base rating names to their PP/PK equivalents
+        RATING_MAP = {
+            'shooting_volume': {'PP': 'pp_shot_volume'},
+            'shooting_accuracy': {'PP': 'pp_shot_on_net'},
+            'ofinishing': {'PP': 'pp_finishing'},
+            'orebound_creation': {'PP': 'pp_rebound_creation'},
+            'oprime_playmaking': {'PP': 'pp_playmaking'},
+            'ozone_entry': {'PP': 'pp_zone_entry'},
+            'd_shot_blocking': {'PK': 'pk_shot_blocking'},
+            'd_hd_shot_suppression_rating': {'PK': 'pk_shot_suppression'},
+            'd_md_shot_suppression_rating': {'PK': 'pk_shot_suppression'},
+            'd_ld_shot_suppression_rating': {'PK': 'pk_shot_suppression'},
+            'd_breakout_ability': {'PK': 'pk_clearing_ability'}
+        }
+
+        if game_state in ['PP', 'PK'] and base_rating_name in RATING_MAP:
+            special_state_map = RATING_MAP[base_rating_name]
+            if game_state in special_state_map:
+                special_rating_name = special_state_map[game_state]
+                return getattr(player, special_rating_name, getattr(player, base_rating_name, 1000))
+
+        return getattr(player, base_rating_name, 1000)
 
     def _increment_stat(self, player_stats, player_id, stat, value, game_state):
         if player_id in player_stats:
@@ -143,7 +194,9 @@ class GameSimulator:
         away_centers = [p for p in self.away_on_ice.values() if p.position == 'C']
         home_c = home_centers[0] if home_centers else random.choice(list(self.home_on_ice.values()))
         away_c = away_centers[0] if away_centers else random.choice(list(self.away_on_ice.values()))
-        prob_home_wins = 0.5 + ((home_c.faceoff_rating - away_c.faceoff_rating) / self.params['general_logic']['faceoff_rating_divisor'])
+        
+        # Faceoff rating does not depend on game state
+        prob_home_wins = 0.5 + ((self._get_player_rating(home_c.player_id, 'faceoff_rating') - self._get_player_rating(away_c.player_id, 'faceoff_rating')) / self.params['general_logic']['faceoff_rating_divisor'])
         
         home_state = self._get_game_state('home')
         away_state = self._get_game_state('away')
@@ -151,13 +204,29 @@ class GameSimulator:
         self._increment_stat(self.away_player_stats, away_c.player_id, 'Faceoffs_Taken', 1, away_state)
         
         if random.random() < prob_home_wins:
-            self.possession, self.puck_carrier_id = 'home', home_c.player_id
+            self.possession = 'home'
             self._increment_stat(self.home_player_stats, home_c.player_id, 'Faceoffs_Won', 1, home_state)
         else:
-            self.possession, self.puck_carrier_id = 'away', away_c.player_id
+            self.possession = 'away'
             self._increment_stat(self.away_player_stats, away_c.player_id, 'Faceoffs_Won', 1, away_state)
-            
+
+        self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
         self.zone, self.offensive_zone_state = 'neutral', None
+
+    def _resolve_neutral_zone_puck_distribution(self, team_type):
+        on_ice_players = self.home_on_ice if team_type == 'home' else self.away_on_ice
+        if not on_ice_players:
+            return None
+        
+        players_with_entry_rating = [p for p in on_ice_players.values() if hasattr(p, 'entry_volume')]
+        
+        if not players_with_entry_rating:
+            return random.choice(list(on_ice_players.keys()))
+
+        weights = [self._get_player_rating(p.player_id, 'entry_volume') for p in players_with_entry_rating]
+        
+        chosen_player = random.choices(players_with_entry_rating, weights=weights, k=1)[0]
+        return chosen_player.player_id
 
     def _calculate_hazards(self):
         hazards = {}
@@ -165,54 +234,70 @@ class GameSimulator:
         def_on_ice_avg = self.away_on_ice_avg if self.possession == 'home' else self.home_on_ice_avg
         if not off_players or not self.puck_carrier_id or self.puck_carrier_id not in off_players:
             self._handle_turnover(); return {}
-        carrier = off_players[self.puck_carrier_id]
+        carrier_id = self.puck_carrier_id
+        
         hazards['line_change'] = BASE_HAZARD_RATES['line_change'] * (1 + (self.home_shift_time / self.params['general_logic']['shift_fatigue_seconds']))
-        hazards['minor_penalty'] = BASE_HAZARD_RATES['minor_penalty'] * self._convert_rating_to_modifier(carrier.openalty_drawn) * (1 / self._convert_rating_to_modifier(def_on_ice_avg.get('min_penalty', 1000), is_defensive=True))
-        is_pp = (self.possession == 'home' and self.home_skaters > self.away_skaters) or (self.possession == 'away' and self.away_skaters > self.home_skaters)
-        is_pk = (self.possession == 'home' and self.home_skaters < self.away_skaters) or (self.possession == 'away' and self.away_skaters < self.home_skaters)
-        if is_pp:
+        
+        penalty_drawn_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'openalty_drawn'))
+        penalty_taken_mod = self._convert_rating_to_modifier(def_on_ice_avg.get('min_penalty', 1000), is_defensive=True)
+        hazards['minor_penalty'] = BASE_HAZARD_RATES['minor_penalty'] * penalty_drawn_mod * (1 / penalty_taken_mod)
+
+        game_state_off = self._get_game_state(self.possession)
+        game_state_def = self._get_game_state('away' if self.possession == 'home' else 'home')
+
+        if game_state_off == 'PP':
             if self.zone in ['offensive', 'pp_setup']:
                 shot_mult, pass_mult, turnover_mult = self.params['pp_logic']['shot_multiplier'], self.params['pp_logic']['pass_multiplier'], self.params['pp_logic']['turnover_multiplier']
-                pk_suppress = self._convert_rating_to_modifier(def_on_ice_avg.get('pk_shot_suppression', 1000), is_defensive=True)
-                pp_vol = self._convert_rating_to_modifier(carrier.pp_shot_volume)
-                hazards['shot_high_danger'] = BASE_HAZARD_RATES['shot_high_danger'] * shot_mult * self._convert_rating_to_modifier(carrier.o_hd_shot_creation_rating) * pp_vol * pk_suppress
-                hazards['shot_medium_danger'] = BASE_HAZARD_RATES['shot_medium_danger'] * shot_mult * self._convert_rating_to_modifier(carrier.o_md_shot_creation_rating) * pp_vol * pk_suppress
-                hazards['shot_low_danger'] = BASE_HAZARD_RATES['shot_low_danger'] * shot_mult * self._convert_rating_to_modifier(carrier.o_ld_shot_creation_rating) * pp_vol * pk_suppress
-                pp_playmake = self._convert_rating_to_modifier(carrier.pp_playmaking)
+                
+                pk_suppress_rating = np.mean([self._get_player_rating(p.player_id, 'd_hd_shot_suppression_rating') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())])
+                pk_suppress = self._convert_rating_to_modifier(pk_suppress_rating, is_defensive=True)
+
+                pp_vol = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'shooting_volume'))
+                chance_creation_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'pp_chance_creation'))
+
+                hazards['shot_high_danger'] = BASE_HAZARD_RATES['shot_high_danger'] * shot_mult * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_hd_shot_creation_rating')) * pp_vol * pk_suppress * chance_creation_mod
+                hazards['shot_medium_danger'] = BASE_HAZARD_RATES['shot_medium_danger'] * shot_mult * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_md_shot_creation_rating')) * pp_vol * pk_suppress * chance_creation_mod
+                hazards['shot_low_danger'] = BASE_HAZARD_RATES['shot_low_danger'] * shot_mult * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_ld_shot_creation_rating')) * pp_vol * pk_suppress * chance_creation_mod
+                
+                pp_playmake = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'oprime_playmaking'))
                 hazards['pass_attempt'] = BASE_HAZARD_RATES['pass_attempt'] * pass_mult * pp_playmake
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * turnover_mult / pp_playmake
             elif self.zone == 'neutral':
-                hazards['zone_entry_attempt'] = self.params['pp_logic']['zone_entry_hazard']
+                hazards['pass_attempt_neutral_zone'] = self.params['pp_logic']['regroup_pass_hazard']
+                hazards['zone_entry_attempt'] = self.params['pp_logic']['zone_entry_hazard'] * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'ozone_entry'))
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * self.params['pp_logic']['turnover_multiplier']
             else:
                 hazards['pass_attempt'] = self.params['pp_logic']['regroup_pass_hazard']
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * self.params['pp_logic']['regroup_turnover_multiplier']
-        elif is_pk:
+        elif game_state_off == 'PK':
             if self.zone == 'defensive':
-                pk_clear = self._convert_rating_to_modifier(carrier.pk_clearing_ability)
-                pp_pressure = self._convert_rating_to_modifier(def_on_ice_avg.get('pp_playmaking', 1000), is_defensive=True)
+                pk_clear = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'd_breakout_ability'))
+                pp_pressure_rating = np.mean([self._get_player_rating(p.player_id, 'oprime_playmaking') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())])
+                pp_pressure = self._convert_rating_to_modifier(pp_pressure_rating, is_defensive=True)
                 hazards['pk_clear_attempt'] = BASE_HAZARD_RATES['dump_out_exit'] * self.params['pk_logic']['clear_attempt_multiplier'] * pk_clear * pp_pressure
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * self.params['pk_logic']['turnover_multiplier'] / pk_clear
             else:
                 hazards['pk_clear_attempt'] = self.params['pk_logic']['neutral_zone_clear_hazard']
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * self.params['pk_logic']['turnover_multiplier']
-        else:
+        else: # Even Strength
             if self.zone == 'defensive':
-                hazards['controlled_exit'] = BASE_HAZARD_RATES['controlled_exit'] * self._convert_rating_to_modifier(carrier.d_breakout_ability)
+                hazards['controlled_exit'] = BASE_HAZARD_RATES['controlled_exit'] * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'd_breakout_ability'))
                 hazards['dump_out_exit'] = BASE_HAZARD_RATES['dump_out_exit']
-                hazards['turnover'] = BASE_HAZARD_RATES['turnover'] / self._convert_rating_to_modifier(carrier.opuck_possession) / self._convert_rating_to_modifier(def_on_ice_avg.get('o_forechecking_pressure', 1000), is_defensive=True)
+                hazards['turnover'] = BASE_HAZARD_RATES['turnover'] / self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'opuck_possession')) / self._convert_rating_to_modifier(def_on_ice_avg.get('o_forechecking_pressure', 1000), is_defensive=True)
             elif self.zone == 'neutral':
-                hazards['zone_entry_attempt'] = self.params['even_strength_logic']['zone_entry_hazard'] * self._convert_rating_to_modifier(carrier.ozone_entry) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_entry_denial', 1000), is_defensive=True)
-                hazards['turnover'] = BASE_HAZARD_RATES['turnover'] / self._convert_rating_to_modifier(carrier.opuck_possession)
-            else:
-                shot_vol_mod = self._convert_rating_to_modifier(carrier.shooting_volume)
-                hd_mod = self._convert_rating_to_modifier(carrier.o_hd_shot_creation_rating) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_hd_shot_suppression_rating', 1000), is_defensive=True)
-                md_mod = self._convert_rating_to_modifier(carrier.o_md_shot_creation_rating) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_md_shot_suppression_rating', 1000), is_defensive=True)
-                ld_mod = self._convert_rating_to_modifier(carrier.o_ld_shot_creation_rating) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_ld_shot_suppression_rating', 1000), is_defensive=True)
+                hazards['pass_attempt_neutral_zone'] = BASE_HAZARD_RATES['pass_attempt'] * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'oprime_playmaking'))
+                hazards['zone_entry_attempt'] = BASE_HAZARD_RATES['zone_entry_attempt'] * self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'entry_volume'))
+                hazards['turnover'] = BASE_HAZARD_RATES['turnover'] / self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'opuck_possession'))
+                hazards['dump_in'] = self.params['even_strength_logic']['dump_in_hazard'] * self._convert_rating_to_modifier(def_on_ice_avg.get('d_entry_denial', 1000))
+            else: # Offensive Zone
+                shot_vol_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'shooting_volume'))
+                hd_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_hd_shot_creation_rating')) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_hd_shot_suppression_rating', 1000), is_defensive=True)
+                md_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_md_shot_creation_rating')) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_md_shot_suppression_rating', 1000), is_defensive=True)
+                ld_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'o_ld_shot_creation_rating')) * self._convert_rating_to_modifier(def_on_ice_avg.get('d_ld_shot_suppression_rating', 1000), is_defensive=True)
                 hazards['shot_high_danger'] = BASE_HAZARD_RATES['shot_high_danger'] * hd_mod * shot_vol_mod
                 hazards['shot_medium_danger'] = BASE_HAZARD_RATES['shot_medium_danger'] * md_mod * shot_vol_mod
                 hazards['shot_low_danger'] = BASE_HAZARD_RATES['shot_low_danger'] * ld_mod * shot_vol_mod
-                cycle_mod = self._convert_rating_to_modifier(carrier.ocycle_play)
+                cycle_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'ocycle_play'))
                 hazards['pass_attempt'] = BASE_HAZARD_RATES['pass_attempt'] * cycle_mod
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] / cycle_mod
         return hazards
@@ -220,31 +305,40 @@ class GameSimulator:
     def _resolve_shot_attempt(self, danger_level):
         off_players = self.home_on_ice if self.possession == 'home' else self.away_on_ice
         def_players = self.away_on_ice if self.possession == 'home' else self.home_on_ice
-        def_on_ice_avg = self.away_on_ice_avg if self.possession == 'home' else self.home_on_ice_avg
         if not off_players or not self.puck_carrier_id or self.puck_carrier_id not in off_players:
-            self._handle_turnover(); return
-        shooter = off_players[self.puck_carrier_id]
-        shooter_id = shooter.player_id
+            self.possession, self.puck_carrier_id = None, None; return
+        shooter_id = self.puck_carrier_id
+        
         possessing_team_state = self._get_game_state(self.possession)
         defending_team_state = self._get_game_state('away' if self.possession == 'home' else 'home')
         off_stats, def_stats = (self.home_player_stats, self.away_player_stats) if self.possession == 'home' else (self.away_player_stats, self.home_player_stats)
         def_goalie_stats, defending_goalie = (self.away_goalie_stats, self.away_goalie) if self.possession == 'home' else (self.home_goalie_stats, self.home_goalie)
+        
         danger_prefix = {'high': 'HD', 'medium': 'MD', 'low': 'LD'}.get(danger_level)
         self._increment_stat(off_stats, shooter_id, f"i{danger_prefix}CF", 1, possessing_team_state)
         for p_id in def_players: self._increment_stat(def_stats, p_id, f"OnIce_{danger_prefix}CA", 1, defending_team_state)
         self._increment_stat(off_stats, shooter_id, 'Shot Attempts', 1, possessing_team_state)
-        is_pp = possessing_team_state == 'PP'
-        block_rating_name = 'pk_shot_blocking' if is_pp else 'd_shot_blocking'
-        if random.random() < self.params['shot_resolution']['base_block_prob'] * self._convert_rating_to_modifier(def_on_ice_avg.get(block_rating_name, 1000), is_defensive=True):
+        for p_id in off_players:
+            self._increment_stat(off_stats, p_id, 'OnIce_CF', 1, possessing_team_state)
+            self._increment_stat(off_stats, p_id, f"OnIce_{danger_prefix}CF", 1, possessing_team_state)
+        
+        avg_block_rating = np.mean([self._get_player_rating(p.player_id, 'd_shot_blocking') for p in def_players.values()])
+        if random.random() < self.params['shot_resolution']['base_block_prob'] * self._convert_rating_to_modifier(avg_block_rating, is_defensive=True):
             blocker = random.choice(list(def_players.values()))
             self._increment_stat(def_stats, blocker.player_id, 'Blocks', 1, defending_team_state)
-            self.possession, self.puck_carrier_id = None, None; return
-        accuracy_rating_name = 'pp_shot_on_net' if is_pp else 'shooting_accuracy'
-        if random.random() < self.params['shot_resolution']['base_miss_prob'] / self._convert_rating_to_modifier(getattr(shooter, accuracy_rating_name)):
-            self._handle_turnover(); return
+            self.possession = 'away' if self.possession == 'home' else 'home'
+            self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+            return
+
+        if random.random() < self.params['shot_resolution']['base_miss_prob'] / self._convert_rating_to_modifier(self._get_player_rating(shooter_id, 'shooting_accuracy')):
+            self.possession = 'away' if self.possession == 'home' else 'home'
+            self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+            return
+
         self._increment_stat(off_stats, shooter_id, 'Shots', 1, possessing_team_state)
         if self.time_in_offensive_zone > 10.0:
             self._increment_stat(off_stats, shooter_id, 'Shots_Off_Cycle', 1, possessing_team_state)
+
         other_on_ice = {pid: p for pid, p in off_players.items() if pid != shooter_id}
         sv_map = {'high': ('g_high_danger_sv_rating', 'lg_avg_hd_sv_pct'), 'medium': ('g_medium_danger_sv_rating', 'lg_avg_md_sv_pct'), 'low': ('g_low_danger_sv_rating', 'lg_avg_ld_sv_pct')}
         g_rating_name, lg_sv_name = sv_map[danger_level]
@@ -252,22 +346,22 @@ class GameSimulator:
         league_avg_sv = self.params['goalie_logic'][lg_sv_name]
         goalie_z = (goalie_sv_rating - 1000) / self.params['ratings']['std_dev']
         goalie_true_sv = league_avg_sv + (goalie_z * self.params['goalie_logic']['sv_pct_swing_factor'])
-        finishing_rating_name = 'pp_finishing' if is_pp else 'ofinishing'
-        finishing_mod = self._convert_rating_to_modifier(getattr(shooter, finishing_rating_name))
+        
+        finishing_mod = self._convert_rating_to_modifier(self._get_player_rating(shooter_id, 'ofinishing'))
         final_sv_pct = np.clip(goalie_true_sv / finishing_mod, 0.0, 1.0)
         shot_xg = 1.0 - final_sv_pct
         self._increment_stat(off_stats, shooter_id, 'xG_for', shot_xg, possessing_team_state)
         def_goalie_stats['xG_against'] += shot_xg
         def_goalie_stats[f"{danger_prefix}_shots_against"] += 1
         def_goalie_stats[f"{danger_prefix}_xG_against"] += shot_xg
+
         if random.random() > final_sv_pct:
             self._increment_stat(off_stats, shooter_id, 'Goals', 1, possessing_team_state)
             def_goalie_stats['Goals_against'] += 1
             def_goalie_stats[f"{danger_prefix}_goals_against"] += 1
             if other_on_ice:
-                playmaking_rating_name = 'pp_playmaking' if is_pp else 'oprime_playmaking'
                 other_players_list = list(other_on_ice.values())
-                assist_weights = [getattr(p, playmaking_rating_name) for p in other_players_list]
+                assist_weights = [self._get_player_rating(p.player_id, 'oprime_playmaking') for p in other_players_list]
                 avg_playmaking_mod = self._convert_rating_to_modifier(np.mean(assist_weights))
                 if random.random() < (self.params['shot_resolution']['primary_assist_prob'] * avg_playmaking_mod):
                     primary_assister = random.choices(other_players_list, weights=assist_weights, k=1)[0]
@@ -276,49 +370,129 @@ class GameSimulator:
                         self._increment_stat(off_stats, primary_assister.player_id, 'Assists_Off_Cycle', 1, possessing_team_state)
                     rem_players = [p for p in other_players_list if p.player_id != primary_assister.player_id]
                     if rem_players:
-                        prob_a2 = self.params['shot_resolution']['secondary_assist_prob_pp'] if is_pp else self.params['shot_resolution']['secondary_assist_prob_es']
+                        prob_a2 = self.params['shot_resolution']['secondary_assist_prob_pp'] if possessing_team_state == 'PP' else self.params['shot_resolution']['secondary_assist_prob_es']
                         if random.random() < prob_a2:
-                            rem_weights = [getattr(p, playmaking_rating_name) for p in rem_players]
+                            rem_weights = [self._get_player_rating(p.player_id, 'oprime_playmaking') for p in rem_players]
                             secondary_assister = random.choices(rem_players, weights=rem_weights, k=1)[0]
                             self._increment_stat(off_stats, secondary_assister.player_id, 'Assists', 1, possessing_team_state)
                             if self.time_in_offensive_zone > 10.0:
                                 self._increment_stat(off_stats, secondary_assister.player_id, 'Assists_Off_Cycle', 1, possessing_team_state)
-            if is_pp:
+            if possessing_team_state == 'PP':
                 if self.penalty_box: min(self.penalty_box, key=lambda p: p['time_remaining'])['time_remaining'] = 0.0
-            else:
+            else: # Even strength goal
                 for p_id in self.home_on_ice: self._increment_stat(self.home_player_stats, p_id, '+/-', 1 if self.possession == 'home' else -1, 'ES')
                 for p_id in self.away_on_ice: self._increment_stat(self.away_player_stats, p_id, '+/-', 1 if self.possession == 'away' else -1, 'ES')
             self.possession, self.puck_carrier_id = None, None; return
-        else:
+        else: # Save
             def_goalie_stats['Saves'] += 1
             if random.random() < 0.6 * self._convert_rating_to_modifier(defending_goalie.get('g_freeze_puck_rating', 1000)):
                 def_goalie_stats['Freezes'] += 1
                 self.possession, self.puck_carrier_id = None, None; return
-            rebound_rating_name = 'pp_rebound_creation' if is_pp else 'orebound_creation'
-            rebound_mod = self._convert_rating_to_modifier(getattr(shooter, rebound_rating_name)) * self._convert_rating_to_modifier(defending_goalie.get('g_rebound_control_rating', 1000), is_defensive=True)
+
+            rebound_mod = self._convert_rating_to_modifier(self._get_player_rating(shooter_id, 'orebound_creation')) * self._convert_rating_to_modifier(defending_goalie.get('g_rebound_control_rating', 1000), is_defensive=True)
             if random.random() < self.params['shot_resolution']['base_rebound_prob'] * rebound_mod:
                 self._increment_stat(off_stats, shooter_id, 'ReboundsCreated', 1, possessing_team_state)
                 def_goalie_stats['ReboundsAllowed'] += 1
                 if other_on_ice:
                     self.puck_carrier_id = random.choice(list(other_on_ice.keys()))
-                else: self._handle_turnover()
+                else: 
+                    self.possession, self.puck_carrier_id = self.possession, None
+                    return
             else:
-                self.possession, self.puck_carrier_id = None, None
+                self.possession, self.puck_carrier_id = self.possession, None
+                return
 
     def _resolve_pass_attempt(self):
         off_players = self.home_on_ice if self.possession == 'home' else self.away_on_ice
         if not off_players or not self.puck_carrier_id or self.puck_carrier_id not in off_players:
-            self._handle_turnover(); return
-        passer = off_players[self.puck_carrier_id]
-        playmaking = 'pp_playmaking' if self._get_game_state(self.possession) == 'PP' else 'oprime_playmaking'
-        if random.random() < 0.95 * self._convert_rating_to_modifier(getattr(passer, playmaking)):
-            receivers = {pid: p for pid, p in off_players.items() if pid != self.puck_carrier_id}
+            self.possession, self.puck_carrier_id = None, None; return
+        passer_id = self.puck_carrier_id
+        
+        playmaking_mod = self._convert_rating_to_modifier(self._get_player_rating(passer_id, 'oprime_playmaking'))
+        if random.random() < 0.95 * playmaking_mod:
+            receivers = {pid: p for pid, p in off_players.items() if pid != passer_id}
             if receivers:
                 receiver_list = list(receivers.values())
-                weights = [(p.shooting_volume + p.ocycle_play) for p in receiver_list]
+                weights = [(self._get_player_rating(p.player_id, 'shooting_volume') + self._get_player_rating(p.player_id, 'ocycle_play')) for p in receiver_list]
                 self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
-            else: self._handle_turnover()
-        else: self._handle_turnover()
+            else: 
+                self.possession = 'away' if self.possession == 'home' else 'home'
+                self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+                return
+        else: 
+            self.possession = 'away' if self.possession == 'home' else 'home'
+            self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+            return
+
+    def _resolve_pass_attempt_neutral_zone(self):
+        off_players = self.home_on_ice if self.possession == 'home' else self.away_on_ice
+        if not off_players or not self.puck_carrier_id or self.puck_carrier_id not in off_players:
+            self.possession, self.puck_carrier_id = None, None; return
+        passer_id = self.puck_carrier_id
+        
+        if random.random() < self._convert_rating_to_modifier(self._get_player_rating(passer_id, 'oprime_playmaking')):
+            receivers = {pid: p for pid, p in off_players.items() if pid != passer_id}
+            if receivers:
+                receiver_list = list(receivers.values())
+                weights = [self._get_player_rating(p.player_id, 'entry_volume') for p in receiver_list]
+                self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
+            else:
+                self.possession = 'away' if self.possession == 'home' else 'home'
+                self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+                return
+        else:
+            self.possession = 'away' if self.possession == 'home' else 'home'
+            self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
+            return
+
+    def _resolve_zone_entry_attempt(self):
+        off_team_type = self.possession
+        def_team_type = 'away' if off_team_type == 'home' else 'home'
+        
+        off_players = self.home_on_ice if off_team_type == 'home' else self.away_on_ice
+        def_players = self.away_on_ice if def_team_type == 'away' else self.home_on_ice
+        
+        off_stats = self.home_player_stats if off_team_type == 'home' else self.away_player_stats
+        def_stats = self.away_player_stats if def_team_type == 'away' else self.home_player_stats
+        
+        off_game_state = self._get_game_state(off_team_type)
+        def_game_state = self._get_game_state(def_team_type)
+        
+        puck_carrier_id = self.puck_carrier_id
+        if not puck_carrier_id:
+            self._handle_turnover(); return
+            
+        for p_id in def_players:
+            self._increment_stat(def_stats, p_id, 'OnIce_EntryAttempts_Against', 1, def_game_state)
+            
+        base_success_prob = self.params['even_strength_logic']['base_entry_success_prob']
+        
+        # Use ozone_entry for PP and entry_volume for ES
+        entry_rating_name = 'ozone_entry' if off_game_state == 'PP' else 'entry_volume'
+        off_mod = self._convert_rating_to_modifier(self._get_player_rating(puck_carrier_id, entry_rating_name))
+        
+        avg_denial_rating = np.mean([self._get_player_rating(p.player_id, 'd_entry_denial') for p in def_players.values()])
+        def_rating_modifier = self._convert_rating_to_modifier(avg_denial_rating, is_defensive=False)
+        
+        final_success_prob = np.clip(base_success_prob * off_mod / def_rating_modifier, 0.1, 0.9)
+        
+        if random.random() < final_success_prob:
+            self._increment_stat(off_stats, puck_carrier_id, 'ControlledEntries', 1, off_game_state)
+            self.zone = 'offensive'
+            self.time_in_offensive_zone = 0.0
+            self.offensive_zone_state = 'pp_setup' if off_game_state == 'PP' else 'rush'
+        else:
+            self._increment_stat(off_stats, puck_carrier_id, 'FailedEntries', 1, off_game_state)
+            
+            denial_players_list = list(def_players.values())
+            denial_weights = [self._convert_rating_to_modifier(self._get_player_rating(p.player_id, 'd_entry_denial')) for p in denial_players_list]
+            if any(w > 0 for w in denial_weights):
+                denier = random.choices(denial_players_list, weights=denial_weights, k=1)[0]
+                self._increment_stat(def_stats, denier.player_id, 'EntryDenials', 1, def_game_state)
+            
+            self.possession = def_team_type
+            self.zone = 'neutral'
+            self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
 
     def _handle_turnover(self):
         if self.possession is None: return
@@ -338,12 +512,22 @@ class GameSimulator:
             if turnover_zone == 'offensive':
                 self._increment_stat(gaining_stats, takeaway_player_id, 'ForecheckBreakups', 1, game_state)
         self.possession = 'away' if self.possession == 'home' else 'home'
-        new_off = self.away_on_ice if self.possession == 'away' else self.home_on_ice
-        if new_off:
-            self.puck_carrier_id = random.choice(list(new_off.keys()))
-        else:
-            self.puck_carrier_id, self.possession = None, None
+        self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
 
+    def _resolve_dump_in(self):
+        self.possession = 'away' if self.possession == 'home' else 'home'
+        self.zone = 'defensive'
+        self.puck_carrier_id = None
+        self.offensive_zone_state = None
+        self.time_in_offensive_zone = 0.0
+
+    def _resolve_dump_out_exit(self):
+        self.possession = 'away' if self.possession == 'home' else 'home'
+        self.zone = 'neutral'
+        self.puck_carrier_id = None
+        self.offensive_zone_state = None
+        self.time_in_offensive_zone = 0.0
+        
     def _resolve_penalty(self, penalty_type):
         carrier_id = self.puck_carrier_id
         draw_state = self._get_game_state(self.possession)
@@ -353,10 +537,14 @@ class GameSimulator:
         pk_stats = self.away_player_stats if def_team == 'away' else self.home_player_stats
         rating_col = 'min_penalty' if penalty_type == 'minor_penalty' else 'maj_penalty'
         def_players_list = list(def_players.values())
-        weights = [(2000 - getattr(p, rating_col)) for p in def_players_list]
+        weights = [(2000 - self._get_player_rating(p.player_id, rating_col)) for p in def_players_list]
         penalized_player = random.choices(def_players_list, weights=weights, k=1)[0]
         self.penalty_box.append({'player_id': penalized_player.player_id, 'team': def_team, 'time_remaining': (2 if penalty_type == 'minor_penalty' else 5) * 60})
         self._increment_stat(pk_stats, penalized_player.player_id, 'Penalty Minutes', 2, self._get_game_state(def_team))
+        if penalty_type == 'minor_penalty':
+            self._increment_stat(pk_stats, penalized_player.player_id, 'MinorPenaltiesTaken', 1, self._get_game_state(def_team))
+        elif penalty_type == 'major_penalty':
+            self._increment_stat(pk_stats, penalized_player.player_id, 'MajorPenaltiesTaken', 1, self._get_game_state(def_team))
         if carrier_id: self._increment_stat(off_stats, carrier_id, 'PenaltiesDrawn', 1, draw_state)
         if def_team == 'home': self.home_skaters -= 1
         else: self.away_skaters -= 1
@@ -401,27 +589,23 @@ class GameSimulator:
                 self._increment_stat(off_stats, self.puck_carrier_id, 'ControlledExits', 1, game_state)
                 self.zone, self.offensive_zone_state, self.time_in_offensive_zone = 'neutral', None, 0.0
             elif chosen_event == 'dump_out_exit':
-                self.possession, self.puck_carrier_id, self.zone, self.offensive_zone_state, self.time_in_offensive_zone = None, None, 'neutral', None, 0.0
+                self._resolve_dump_out_exit()
             elif chosen_event == 'pk_clear_attempt':
                 if random.random() < self.params['pk_logic']['successful_clear_prob']:
                     self._increment_stat(off_stats, self.puck_carrier_id, 'PK_Clears', 1, game_state)
-                    self._handle_turnover(); self.zone = 'defensive'
+                    self.possession, self.puck_carrier_id = None, None
+                    self._handle_turnover()
                 else: self.possession, self.puck_carrier_id, self.zone = None, None, 'neutral'
                 self.offensive_zone_state, self.time_in_offensive_zone = None, 0.0
             elif chosen_event == 'zone_entry_attempt':
-                def_players = self.away_on_ice if self.possession == 'home' else self.home_on_ice
-                def_stats = self.away_player_stats if self.possession == 'home' else self.home_player_stats
-                def_game_state = self._get_game_state('away' if self.possession == 'home' else 'home')
-                for p_id in def_players:
-                    self._increment_stat(def_stats, p_id, 'OnIce_EntryAttempts_Against', 1, def_game_state)
-                    self._increment_stat(def_stats, p_id, 'OnIce_ControlledEntries_Against', 1, def_game_state)
-                self._increment_stat(off_stats, self.puck_carrier_id, 'ControlledEntries', 1, game_state)
-                self.zone, self.time_in_offensive_zone = 'offensive', 0.0
-                self.offensive_zone_state = 'pp_setup' if game_state == 'PP' else 'rush'
+                self._resolve_zone_entry_attempt()
             elif chosen_event.startswith('shot_'):
                 self._resolve_shot_attempt(danger_level=chosen_event.split('_')[1])
             elif chosen_event == 'turnover': self._handle_turnover()
             elif chosen_event == 'pass_attempt': self._resolve_pass_attempt()
+            elif chosen_event == 'pass_attempt_neutral_zone': self._resolve_pass_attempt_neutral_zone()
+            elif chosen_event == 'dump_in':
+                self._resolve_dump_in()
             elif 'penalty' in chosen_event: self._resolve_penalty(chosen_event)
             elif chosen_event == 'line_change': self._resolve_faceoff()
         home_flat_stats = [ {'player_id': pid, 'Player': data['Player'], **{f"{sn}_{st}": sv for st, s in data.items() if st != 'Player' for sn, sv in s.items()}} for pid, data in self.home_player_stats.items() ]
@@ -452,6 +636,8 @@ def run_multiple_simulations(num_sims, home_team_data, away_team_data):
     avg_away_goalie = pd.concat(all_away_goalies).groupby(['Player']).mean().reset_index()
 
     def _finalize_player_stats(df):
+        df['OnIce_CF_PP'] = df.get('OnIce_HDCF_PP', 0) + df.get('OnIce_MDCF_PP', 0) + df.get('OnIce_LDCF_PP', 0)
+        
         def calculate_per_60(d, stats, toi_col_suffix):
             toi_col = f'TOI_{toi_col_suffix}'
             if toi_col in d.columns:
@@ -463,9 +649,9 @@ def run_multiple_simulations(num_sims, home_team_data, away_team_data):
                         d[new_col_name] = np.where(toi_mins > 0, (d[stat_col] / toi_mins) * 60, 0)
             return d
 
-        es_stats = ['iHDCF', 'iMDCF', 'iLDCF', 'OnIce_HDCA', 'OnIce_MDCA', 'OnIce_LDCA', 'xG_for', 'ReboundsCreated', 'PenaltiesDrawn', 'ControlledEntries', 'ControlledExits', 'Giveaways', 'Takeaways', 'Faceoffs_Won', 'Faceoffs_Taken', 'Shots_Off_Cycle', 'Assists_Off_Cycle', 'ForecheckBreakups', 'OnIce_EntryAttempts_Against', 'OnIce_ControlledEntries_Against']
-        pp_stats = ['iHDCF', 'iMDCF', 'iLDCF', 'xG_for', 'ReboundsCreated', 'PenaltiesDrawn', 'ControlledEntries']
-        pk_stats = ['OnIce_HDCA', 'OnIce_MDCA', 'OnIce_LDCA', 'PK_Clears']
+        es_stats = ['iHDCF', 'iMDCF', 'iLDCF', 'OnIce_HDCA', 'OnIce_MDCA', 'OnIce_LDCA', 'xG_for', 'ReboundsCreated', 'PenaltiesDrawn', 'ControlledEntries', 'ControlledExits', 'Giveaways', 'Takeaways', 'Faceoffs_Won', 'Faceoffs_Taken', 'Shots_Off_Cycle', 'Assists_Off_Cycle', 'ForecheckBreakups', 'OnIce_EntryAttempts_Against', 'OnIce_ControlledEntries_Against', 'Blocks', 'MinorPenaltiesTaken', 'MajorPenaltiesTaken', 'Assists', 'EntryDenials', 'FailedEntries']
+        pp_stats = ['iHDCF', 'iMDCF', 'iLDCF', 'xG_for', 'ReboundsCreated', 'PenaltiesDrawn', 'ControlledEntries', 'OnIce_CF']
+        pk_stats = ['OnIce_HDCA', 'OnIce_MDCA', 'OnIce_LDCA', 'PK_Clears', 'Blocks']
 
         df = calculate_per_60(df, es_stats, 'ES')
         df = calculate_per_60(df, pp_stats, 'PP')
@@ -475,6 +661,7 @@ def run_multiple_simulations(num_sims, home_team_data, away_team_data):
         df['Sim_Shooting_Pct'] = np.where(df.get('Shots_Total', 0) > 0, (df.get('Goals_Total', 0) / df.get('Shots_Total', 0)) * 100, 0)
         df['Sim_Faceoff_Pct'] = np.where(df.get('Faceoffs_Taken_Total', 0) > 0, (df.get('Faceoffs_Won_Total', 0) / df.get('Faceoffs_Taken_Total', 0)) * 100, 0)
         df['Sim_GoalsAboveExpected_Total'] = df.get('Goals_Total', 0) - df.get('xG_for_Total', 0)
+        df['Sim_GoalsAboveExpected_PP'] = df.get('Goals_PP', 0) - df.get('xG_for_PP', 0)
         
         return df
 

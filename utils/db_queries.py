@@ -1,5 +1,3 @@
-# utils/db_queries.py
-
 import streamlit as st
 import pandas as pd
 import json
@@ -228,6 +226,20 @@ def save_manual_rating(player_id: str, player_name: str, rating_name: str, manua
     except Exception as e:
         st.error(f"Error saving manual rating for {rating_name}: {e}")
 
+def update_base_rating(player_id: str, new_ratings: dict):
+    """Updates one or more columns in the base_ratings table for a single player."""
+    try:
+        ratings_as_int = {key: int(value) for key, value in new_ratings.items()}
+        supabase = _create_supabase_client()
+        supabase.table('base_ratings').update(ratings_as_int).eq('player_id', int(player_id)).execute()
+        
+        # This is the crucial step. It tells Streamlit to invalidate all cached data.
+        # The next time a function with @st.cache_data is called (like get_simulation_roster),
+        # it will be forced to re-run and fetch the new data from the database.
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Error updating base ratings for player {player_id}: {e}")
+
 def delete_manual_rating(player_id: str, rating_name: str):
     """Deletes a single manual rating for a player."""
     try:
@@ -292,6 +304,30 @@ def save_coach_ratings(team_id: int, ratings_payload: dict):
         st.cache_data.clear()
     except Exception as e:
         st.error(f"Error saving coach ratings: {e}")
+
+def update_pp_rating(player_id: str, new_ratings: dict):
+    """Updates one or more columns in the pp_ratings table for a single player."""
+    try:
+        # Ensure values are integers where appropriate before sending to DB
+        ratings_as_int = {key: int(value) for key, value in new_ratings.items()}
+        supabase = _create_supabase_client()
+        supabase.table('pp_ratings').update(ratings_as_int).eq('player_id', int(player_id)).execute()
+        # Clear the cache to force a reload of the get_simulation_roster function
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Error updating PP ratings for player {player_id}: {e}")
+
+def update_pk_rating(player_id: str, new_ratings: dict):
+    """Updates one or more columns in the pk_ratings table for a single player."""
+    try:
+        # Ensure values are integers where appropriate before sending to DB
+        ratings_as_int = {key: int(value) for key, value in new_ratings.items()}
+        supabase = _create_supabase_client()
+        supabase.table('pk_ratings').update(ratings_as_int).eq('player_id', int(player_id)).execute()
+        # Clear the cache to force a reload of the get_simulation_roster function
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Error updating PK ratings for player {player_id}: {e}")
 
 def save_simulation_results(game_id: int, results: dict):
     """Saves a simulation result dictionary to the database."""
@@ -403,7 +439,6 @@ def get_player_possession_actuals(player_ids: list):
         st.error(f"Error fetching player possession actuals: {e}")
         return pd.DataFrame()
 
-# --- NEW FUNCTION FOR TRANSITION TAB ---
 @st.cache_data
 def get_player_transition_actuals(player_ids: list):
     """
@@ -419,4 +454,38 @@ def get_player_transition_actuals(player_ids: list):
         return pd.DataFrame(response.data)
     except Exception as e:
         st.error(f"Error fetching player transition actuals: {e}")
+        return pd.DataFrame()
+    
+@st.cache_data
+def get_player_defense_actuals(player_ids: list):
+    """
+    Fetches the real-world (actuals) 5v5 defensive stats for a list of players
+    by calling a PostgreSQL function in Supabase.
+    """
+    if not player_ids:
+        return pd.DataFrame()
+    try:
+        clean_player_ids = [int(pid) for pid in player_ids]
+        supabase = _create_supabase_client()
+        response = supabase.rpc('get_player_defense_actuals', {'player_ids_param': clean_player_ids}).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Error fetching player defense actuals: {e}")
+        return pd.DataFrame()
+    
+@st.cache_data
+def get_player_special_teams_actuals(player_ids: list):
+    """
+    Fetches the real-world (actuals) specialty teams stats for a list of players
+    by calling a PostgreSQL function in Supabase.
+    """
+    if not player_ids:
+        return pd.DataFrame()
+    try:
+        clean_player_ids = [int(pid) for pid in player_ids]
+        supabase = _create_supabase_client()
+        response = supabase.rpc('get_player_special_teams_actuals', {'player_ids_param': clean_player_ids}).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Error fetching player special teams actuals: {e}")
         return pd.DataFrame()

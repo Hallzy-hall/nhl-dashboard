@@ -1,5 +1,3 @@
-# src/ui_components.py
-
 import streamlit as st
 import pandas as pd
 import json
@@ -13,7 +11,7 @@ from utils.db_queries import (
     get_manual_ratings_for_players, save_manual_rating, delete_manual_rating, log_rating_change,
     get_team_roster, get_player_ratings, get_manual_goalie_ratings,
     save_manual_goalie_rating, delete_manual_goalie_rating, get_starting_goalie_id,
-    get_full_goalie_data, save_coach_ratings, get_simulation_roster
+    get_full_goalie_data, save_coach_ratings, get_simulation_roster, update_base_rating, update_pp_rating, update_pk_rating
 )
 
 
@@ -84,8 +82,8 @@ def load_team_data(team_id: int, team_type: str, teams_df: pd.DataFrame):
         'team_id': team_id, 'team_name': team_name,
         'lineup': get_default_lineup(team_id), 'pp_lineup': get_default_pp_lineup(team_id),
         'pk_lineup': get_default_pk_lineup(team_id),
-        'roster': skater_roster,           # Use the derived roster
-        'base_ratings': base_ratings,       # Use the COMPLETE ratings dataframe
+        'roster': skater_roster,          # Use the derived roster
+        'base_ratings': base_ratings,      # Use the COMPLETE ratings dataframe
         'manual_ratings': manual_ratings,
         'coach_data': get_coach_by_team_id(team_id),
         'goalie_roster': goalie_roster_df,
@@ -143,37 +141,24 @@ def _render_ratings_editor(team_type: str, team_data: dict):
     goalie_roster = team_data.get('goalie_roster', pd.DataFrame())
     is_goalie = not goalie_roster.empty and (goalie_roster['player_id'].astype(str) == player_id).any()
 
-    # --- MODIFIED SECTION: Define the complete, organized lists of ratings ---
     SKATER_RATINGS_TO_EDIT = [
-        # General & TOI
-        "toi_individual_rating", "faceoff_rating",
-        # 5v5 Offensive
-        "shooting_volume", "shooting_accuracy", "hdshot_creation", "mshot_creation", "ofinishing",
-        "orebound_creation", "oprime_playmaking", "osecond_playmaking", "ozone_entry",
-        "opuck_possession", "ocycle_play", "o_forechecking_pressure",
-        # 5v5 Defensive
-        "d_breakout_ability", "d_entry_denial", "d_cycle_defense", "d_shot_blocking",
-        # Danger Zone Specific
-        "o_hd_shot_creation_rating", "o_md_shot_creation_rating", "o_ld_shot_creation_rating",
-        "d_hd_shot_suppression_rating", "d_md_shot_suppression_rating", "d_ld_shot_suppression_rating",
-        # Penalties
-        "openalty_drawn", "min_penalty", "maj_penalty",
-        # Power Play
-        "pp_shot_volume", "pp_shot_on_net", "pp_chance_creation", "pp_playmaking",
-        "pp_zone_entry", "pp_finishing", "pp_rebound_creation",
-        # Penalty Kill
+        "toi_individual_rating", "faceoff_rating", "shooting_volume", "shooting_accuracy", 
+        "hdshot_creation", "mshot_creation", "ofinishing", "orebound_creation", 
+        "oprime_playmaking", "osecond_playmaking", "ozone_entry", "opuck_possession", 
+        "ocycle_play", "o_forechecking_pressure", "d_breakout_ability", "d_entry_denial", 
+        "d_cycle_defense", "d_shot_blocking", "o_hd_shot_creation_rating", 
+        "o_md_shot_creation_rating", "o_ld_shot_creation_rating", "d_hd_shot_suppression_rating", 
+        "d_md_shot_suppression_rating", "d_ld_shot_suppression_rating", "openalty_drawn", 
+        "min_penalty", "maj_penalty", "pp_shot_volume", "pp_shot_on_net", "pp_chance_creation", 
+        "pp_playmaking", "pp_zone_entry", "pp_finishing", "pp_rebound_creation", 
         "pk_shot_suppression", "pk_clearing_ability", "pk_shot_blocking"
     ]
-
     GOALIE_RATINGS_TO_EDIT = [
-        # New Base Stats
         "goalie_save_adj", "rebound_control_adj", "g_ld_save_5v5", "g_ld_save_4v5",
         "g_md_save_5v5", "g_md_save_4v5", "g_hd_save_5v5", "g_hd_save_4v5",
-        # Existing Sim Ratings
         "g_low_danger_sv_rating", "g_medium_danger_sv_rating", "g_high_danger_sv_rating",
         "g_rebound_control_rating", "g_freeze_puck_rating"
     ]
-    # --- END OF MODIFICATION ---
 
     if is_goalie:
         RATINGS_TO_EDIT = GOALIE_RATINGS_TO_EDIT
@@ -194,13 +179,11 @@ def _render_ratings_editor(team_type: str, team_data: dict):
             player_ratings = base_ratings_df[base_ratings_df['player_id'] == player_id]
             new_manual_ratings = {}
 
-            # --- Add header row for clarity in the UI ---
             h_col1, h_col2, h_col3, h_col4 = st.columns([2.5, 1, 1, 2])
             h_col1.markdown("**Rating**")
             h_col2.markdown("**Base**")
             h_col3.markdown("**Manual**")
             h_col4.markdown("**Manual Weight**")
-
 
             for rating_name in RATINGS_TO_EDIT:
                 base_value = 1000
@@ -210,12 +193,16 @@ def _render_ratings_editor(team_type: str, team_data: dict):
                         base_value = rating_val
 
                 existing_manual = original_manual_ratings.get(rating_name, {})
-                manual_value = existing_manual.get('manual_value', float(base_value))
                 weight_value = existing_manual.get('weight', 0)
+                
+                if weight_value == 0:
+                    manual_value = float(base_value)
+                else:
+                    manual_value = existing_manual.get('manual_value', float(base_value))
 
                 r_col1, r_col2, r_col3, r_col4 = st.columns([2.5, 1, 1, 2])
                 r_col1.text_input("Rating", value=rating_name.replace('_', ' ').title(), disabled=True, key=f"{team_type}_{player_id}_{rating_name}_name", label_visibility="collapsed")
-                r_col2.text_input("Base", value=f"{base_value:.0f}", key=f"{team_type}_{player_id}_{rating_name}_base", disabled=True, label_visibility="collapsed")
+                r_col2.number_input("Base", value=float(base_value), key=f"{team_type}_{player_id}_{rating_name}_base", step=1.0, format="%.0f", label_visibility="collapsed")
                 new_manual_value = r_col3.number_input("Manual", value=float(manual_value), key=f"{team_type}_{player_id}_{rating_name}_manual", step=1.0, format="%.0f", label_visibility="collapsed")
                 new_weight_value = r_col4.slider("Weight %", min_value=0, max_value=100, value=weight_value, key=f"{team_type}_{player_id}_{rating_name}_weight", label_visibility="collapsed")
 
@@ -224,6 +211,55 @@ def _render_ratings_editor(team_type: str, team_data: dict):
             save_col, cancel_col = st.columns(2)
             with save_col:
                 if st.button("Save Ratings", key=f"save_expander_{team_type}_{player_id}", use_container_width=True, type="primary"):
+                    # Define which ratings belong to which table
+                    PP_RATINGS = [
+                        "pp_shot_volume", "pp_shot_on_net", "pp_chance_creation", 
+                        "pp_playmaking", "pp_zone_entry", "pp_finishing", "pp_rebound_creation"
+                    ]
+                    PK_RATINGS = [
+                        "pk_shot_suppression", "pk_clearing_ability", "pk_shot_blocking"
+                    ]
+
+                    # Create separate dictionaries for each table's updates
+                    edited_base_ratings = {}
+                    edited_pp_ratings = {}
+                    edited_pk_ratings = {}
+
+                    # Sort the edited ratings into the correct dictionary
+                    for rating_name, values in new_manual_ratings.items():
+                        base_value_original = values['base_value']
+                        widget_key = f"{team_type}_{player_id}_{rating_name}_base"
+                        base_value_new = st.session_state.get(widget_key, base_value_original)
+
+                        if float(base_value_new) != float(base_value_original):
+                            if rating_name in PP_RATINGS:
+                                edited_pp_ratings[rating_name] = base_value_new
+                            elif rating_name in PK_RATINGS:
+                                edited_pk_ratings[rating_name] = base_value_new
+                            else:
+                                edited_base_ratings[rating_name] = base_value_new
+
+                    # Call the correct update function for each dictionary if it's not empty
+                    if edited_base_ratings and not is_goalie:
+                        update_base_rating(player_id, edited_base_ratings)
+
+                    if edited_pp_ratings and not is_goalie:
+                        update_pp_rating(player_id, edited_pp_ratings)
+
+                    if edited_pk_ratings and not is_goalie:
+                        update_pk_rating(player_id, edited_pk_ratings)
+
+                    # Combine all edited ratings for the "instant gratification" UI update
+                    all_edited_ratings = {**edited_base_ratings, **edited_pp_ratings, **edited_pk_ratings}
+
+                    if all_edited_ratings:
+                        player_index = st.session_state.dashboard_data[team_type]['base_ratings'].index[st.session_state.dashboard_data[team_type]['base_ratings']['player_id'].astype(str) == player_id].tolist()
+                        if player_index:
+                            idx = player_index[0]
+                            for rating_name, new_value in all_edited_ratings.items():
+                                st.session_state.dashboard_data[team_type]['base_ratings'].loc[idx, rating_name] = new_value
+
+                    # --- THIS SECTION FOR MANUAL RATINGS REMAINS UNCHANGED ---
                     updated_manual_ratings = {}
                     for rating_name, new_values in new_manual_ratings.items():
                         new_weight, new_value, base_value = new_values['weight'], new_values['manual_value'], new_values['base_value']
@@ -255,7 +291,6 @@ def _render_ratings_editor(team_type: str, team_data: dict):
                     st.session_state.dashboard_data[team_type]['show_edit_modal'] = False
                     st.session_state.dashboard_data[team_type]['selected_player_id'] = None
                     st.rerun()
-
 
 def _render_lineup_rows(team_type, line_name, positions, team_data, player_names, toi_component: str = 'Total'):
     """Renders the player selectors for a single line with dynamic ID updates."""
@@ -341,7 +376,6 @@ def _render_lineup_rows(team_type, line_name, positions, team_data, player_names
         for i, pos in enumerate(positions):
             with cols[i]: render_player(pos)
 
-
 def _render_goalie_ui(team_type: str, team_data: dict):
     """Renders the UI for selecting the starting goalie."""
     st.markdown("---")
@@ -383,7 +417,6 @@ def _render_goalie_ui(team_type: str, team_data: dict):
             label_visibility="collapsed"
         )
 
-
 def _render_coach_editor(team_type: str, team_data: dict):
     """Renders the ratings editor expander for the currently selected coach."""
     coach_data = team_data.get('coach_data', {})
@@ -393,7 +426,6 @@ def _render_coach_editor(team_type: str, team_data: dict):
     with st.expander(f"⚙️ Editing Ratings for Coach: **{coach_name}**", expanded=True):
         st.markdown("##### Power Play Unit Shares")
         
-        # --- PP Slider ---
         pp_shares = coach_data.get('pp_unit_shares', {'PP1': 0.60, 'PP2': 0.40})
         pp1_share_percent = int(pp_shares.get('PP1', 0.60) * 100)
         
@@ -407,7 +439,6 @@ def _render_coach_editor(team_type: str, team_data: dict):
         st.divider()
         st.markdown("##### Penalty Kill Unit Shares")
         
-        # --- PK Slider ---
         pk_shares = coach_data.get('pk_unit_shares', {'PK1': 0.55, 'PK2': 0.45})
         pk1_share_percent = int(pk_shares.get('PK1', 0.55) * 100)
 
@@ -418,11 +449,9 @@ def _render_coach_editor(team_type: str, team_data: dict):
         pk2_share_percent = 100 - new_pk1_percent
         st.text(f"PK2 Share: {pk2_share_percent}%")
         
-        # --- Save/Cancel Buttons ---
         save_col, cancel_col = st.columns(2)
         with save_col:
             if st.button("Save Coach Ratings", key=f"save_coach_{team_type}", use_container_width=True, type="primary"):
-                # Reconstruct the dictionaries
                 new_pp_unit_shares = {
                     "PP1": new_pp1_percent / 100.0,
                     "PP2": pp2_share_percent / 100.0
@@ -432,14 +461,12 @@ def _render_coach_editor(team_type: str, team_data: dict):
                     "PK2": pk2_share_percent / 100.0
                 }
                 
-                # Create payload and save to DB
                 payload = {
                     'pp_unit_shares': new_pp_unit_shares,
                     'pk_unit_shares': new_pk_unit_shares
                 }
                 save_coach_ratings(team_id, payload)
                 
-                # Update session state and close editor
                 st.session_state.dashboard_data[team_type]['coach_data'].update(payload)
                 st.session_state.dashboard_data[team_type]['show_coach_edit_modal'] = False
                 st.success(f"Coach ratings for {coach_name} saved!")
@@ -449,7 +476,6 @@ def _render_coach_editor(team_type: str, team_data: dict):
             if st.button("Cancel", key=f"cancel_coach_{team_type}", use_container_width=True):
                 st.session_state.dashboard_data[team_type]['show_coach_edit_modal'] = False
                 st.rerun()
-
 
 def render_team_ui(team_type: str, teams_df: pd.DataFrame):
     """Renders the entire UI for one team (Home or Away) on the dashboard."""
@@ -472,7 +498,6 @@ def render_team_ui(team_type: str, teams_df: pd.DataFrame):
 
             id_col, name_col = st.columns([1, 4])
             with id_col:
-                # This is now a button that opens the editor
                 st.button(
                     label=str(coach_info.get('coach_id', 'N/A')),
                     key=f"edit_coach_{team_type}",
@@ -486,7 +511,6 @@ def render_team_ui(team_type: str, teams_df: pd.DataFrame):
                     key=f"{team_type}_coach_name", label_visibility="collapsed"
                 )
 
-            # Call the editor if its state is true
             if team_data.get('show_coach_edit_modal'):
                 _render_coach_editor(team_type, team_data)
             
@@ -506,7 +530,6 @@ def render_team_ui(team_type: str, teams_df: pd.DataFrame):
         if team_data.get('show_edit_modal') and team_data.get('selected_player_id'):
             _render_ratings_editor(team_type, team_data)
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 def render_unit(line_name, positions, lineup_df, roster_df, roster_names, toi_component: str = 'Total'):
     """Renders a single line/unit for the Lineup Builder page."""
@@ -542,7 +565,6 @@ def render_unit(line_name, positions, lineup_df, roster_df, roster_names, toi_co
     line_score = calculate_line_score(current_line_player_ids)
     with line_cols[-1]:
         st.metric("Unit Score", f"{line_score:.2f}")
-
 
 def render_lineup_ui():
     """Renders the main UI for the Lineup Builder page."""
