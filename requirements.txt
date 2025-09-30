@@ -46,7 +46,7 @@ protobuf==4.25.3
 pydantic
 pydantic_core==2.20.1
 pydeck==0.9.1
-PyJWT==2.8.0
+PyJWT
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
 pytz==2024.1
