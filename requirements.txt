@@ -43,7 +43,7 @@ packaging==24.1
 pillow==10.4.0
 postgrest==1.1.1
 protobuf==4.25.3
-pydantic==2.8.2
+pydantic
 pydantic_core==2.20.1
 pydeck==0.9.1
 PyJWT==2.8.0
