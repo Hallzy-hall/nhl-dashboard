@@ -1,22 +1,15 @@
 
-# --- Scientific Stack (Compatible Versions) ---
 numpy==1.26.4
 scipy==1.12.0
 pandas==2.2.2
 matplotlib==3.8.4
 altair==5.3.0
 pyarrow==16.1.0
-
-# --- Streamlit and UI ---
 streamlit==1.38.0
 streamlit-option-menu==0.4.0
-
-# --- Supabase and Database ---
 supabase==2.18.1
 psycopg2-binary==2.9.10
 SQLAlchemy==2.0.43
-
-# --- Other Dependencies ---
 annotated-types==0.7.0
 anyio==4.10.0
 attrs==25.3.0
@@ -71,8 +64,8 @@ supabase_functions==0.10.1
 tenacity==8.5.0
 toml==0.10.2
 tornado==6.4
-typing-inspection==0.9.0
-typing_extensions==4.12.2
+typing-extensions 
+typing-inspection
 tzdata==2024.1
 urllib3==2.2.2
 watchdog==4.0.1
