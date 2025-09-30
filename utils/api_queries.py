@@ -1,39 +1,53 @@
-# utils/api_queries.py
-
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta # MODIFIED: Added timedelta
 import streamlit as st
 from utils.db_queries import get_teams, _create_supabase_client
 
-# utils/api_queries.py
-
 def fetch_nhl_schedule():
     """
-    MOCK FUNCTION: Returns a hardcoded list of the first 15 games of the
-    2024-2025 season to be used for development during the off-season.
+    Fetches the NHL schedule for a 7-day window: the previous day, the current day,
+    and the next five days from the live NHL API.
     """
-    st.warning("Using mock schedule data for development.", icon="⚠️")
-    mock_games = [
-        {'id': 2024020001, 'startTimeUTC': '2024-10-08T23:00:00Z', 'homeTeam': {'abbrev': 'TBL'}, 'awayTeam': {'abbrev': 'BUF'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020002, 'startTimeUTC': '2024-10-08T23:00:00Z', 'homeTeam': {'abbrev': 'BOS'}, 'awayTeam': {'abbrev': 'FLA'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020003, 'startTimeUTC': '2024-10-09T02:00:00Z', 'homeTeam': {'abbrev': 'VAN'}, 'awayTeam': {'abbrev': 'EDM'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020004, 'startTimeUTC': '2024-10-09T23:00:00Z', 'homeTeam': {'abbrev': 'WSH'}, 'awayTeam': {'abbrev': 'CAR'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020005, 'startTimeUTC': '2024-10-09T23:30:00Z', 'homeTeam': {'abbrev': 'NJD'}, 'awayTeam': {'abbrev': 'MTL'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020006, 'startTimeUTC': '2024-10-10T00:00:00Z', 'homeTeam': {'abbrev': 'TOR'}, 'awayTeam': {'abbrev': 'OTT'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020007, 'startTimeUTC': '2024-10-10T02:00:00Z', 'homeTeam': {'abbrev': 'SEA'}, 'awayTeam': {'abbrev': 'SJS'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020008, 'startTimeUTC': '2024-10-10T23:00:00Z', 'homeTeam': {'abbrev': 'NYR'}, 'awayTeam': {'abbrev': 'PIT'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020009, 'startTimeUTC': '2024-10-11T00:00:00Z', 'homeTeam': {'abbrev': 'DAL'}, 'awayTeam': {'abbrev': 'NSH'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020010, 'startTimeUTC': '2024-10-11T01:00:00Z', 'homeTeam': {'abbrev': 'COL'}, 'awayTeam': {'abbrev': 'ARI'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020011, 'startTimeUTC': '2024-10-11T23:00:00Z', 'homeTeam': {'abbrev': 'CBJ'}, 'awayTeam': {'abbrev': 'PHI'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020012, 'startTimeUTC': '2024-10-11T23:00:00Z', 'homeTeam': {'abbrev': 'FLA'}, 'awayTeam': {'abbrev': 'TBL'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020013, 'startTimeUTC': '2024-10-12T00:00:00Z', 'homeTeam': {'abbrev': 'MIN'}, 'awayTeam': {'abbrev': 'STL'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020014, 'startTimeUTC': '2024-10-12T02:30:00Z', 'homeTeam': {'abbrev': 'ANA'}, 'awayTeam': {'abbrev': 'VGK'}, 'gameScheduleState': 'SCHEDULED'},
-        {'id': 2024020015, 'startTimeUTC': '2024-10-12T17:00:00Z', 'homeTeam': {'abbrev': 'WPG'}, 'awayTeam': {'abbrev': 'CGY'}, 'gameScheduleState': 'SCHEDULED'},
-    ]
-    return mock_games
+    all_games = []
+    today = datetime.now()
+    
+    # Loop through a 7-day window (-1 day to +5 days)
+    for i in range(-1, 6):
+        date_to_fetch = today + timedelta(days=i)
+        formatted_date = date_to_fetch.strftime('%Y-%m-%d')
+        
+        # Construct the API URL for the specific date
+        api_url = f"https://api-web.nhle.com/v1/schedule/{formatted_date}"
+        
+        try:
+            response = requests.get(api_url)
+            response.raise_for_status() # Raise an exception for bad status codes
+            data = response.json()
+            
+            # The games are located in the 'gameWeek' list for each day
+            for day in data.get('gameWeek', []):
+                for game in day.get('games', []):
+                    game_id = game.get('id')
+                    game_date = game.get('startTimeUTC') # Using startTimeUTC for precision
+                    home_team = game.get('homeTeam', {}).get('abbrev')
+                    away_team = game.get('awayTeam', {}).get('abbrev')
+                    game_state = game.get('gameState') # e.g., 'OFF', 'LIVE', 'FUT'
 
+                    if game_id and game_date and home_team and away_team:
+                        all_games.append({
+                            "id": game_id,
+                            "startTimeUTC": game_date,
+                            "home_team_abbr": home_team,
+                            "away_team_abbr": away_team,
+                            "gameScheduleState": game_state
+                        })
+                        
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching schedule data for {formatted_date}: {e}")
+            continue # Continue to the next day if an error occurs
 
+    return all_games
     
 def update_schedule_in_db():
     """
@@ -46,19 +60,19 @@ def update_schedule_in_db():
         st.error("Could not retrieve team mapping from database. Aborting schedule update.")
         return
     
-    # --- MODIFIED: Create a lookup dictionary using team abbreviation ---
     team_abbr_to_id = pd.Series(teams_df.team_id.values, index=teams_df.nhl_team_abbr).to_dict()
 
-    # 2. Fetch the schedule data from the new API
+    # 2. Fetch the schedule data from the new live API function
     schedule_games = fetch_nhl_schedule()
     if not schedule_games:
+        st.warning("No games found in the schedule to update.")
         return
 
     # 3. Process the data and prepare it for the database
     games_to_upsert = []
-    for game in schedule_games[:15]: # Ensure we only process the first 15 games
-        home_team_abbr = game["homeTeam"]["abbrev"]
-        away_team_abbr = game["awayTeam"]["abbrev"]
+    for game in schedule_games: # MODIFIED: Removed the 15-game limit
+        home_team_abbr = game["home_team_abbr"]
+        away_team_abbr = game["away_team_abbr"]
 
         home_team_id = team_abbr_to_id.get(home_team_abbr)
         away_team_id = team_abbr_to_id.get(away_team_abbr)
@@ -69,7 +83,7 @@ def update_schedule_in_db():
                 "game_date": game["startTimeUTC"],
                 "home_team_id": home_team_id,
                 "away_team_id": away_team_id,
-                "status": game.get("gameScheduleState", "SCHEDULED") # Use a default status
+                "status": game.get("gameScheduleState", "SCHEDULED")
             }
             games_to_upsert.append(game_data)
 
@@ -78,9 +92,13 @@ def update_schedule_in_db():
         try:
             supabase = _create_supabase_client()
             supabase.table("schedule").upsert(games_to_upsert, on_conflict="game_id").execute()
-            st.success(f"Successfully updated schedule with {len(games_to_upsert)} upcoming games.")
+            st.success(f"Successfully updated schedule with {len(games_to_upsert)} games.")
         except Exception as e:
             st.error(f"Error upserting schedule data: {e}")
+
+# =============================================================================
+#  PLAYER SYNC FUNCTIONS (UNCHANGED)
+# =============================================================================
 
 def sync_all_player_data():
     """
@@ -138,14 +156,10 @@ def sync_all_player_data():
     if not players_with_team_change.empty:
         st.info(f"Found {len(players_with_team_change)} players with team changes.")
         print(f"Found {len(players_with_team_change)} players with team changes.")
-        # --- MODIFIED: This loop now handles players who become UFAs ---
         for index, row in players_with_team_change.iterrows():
-            # Check if the new team_id is valid
             if pd.isna(row['team_id_api']):
-                # If the new team_id is missing, the player is now a UFA
                 _handle_ufa_player(supabase, str(row['player_id']), row['full_name_api'])
             else:
-                # Otherwise, they changed to a different, known team
                 _update_player_team(supabase, str(row['player_id']), row['full_name_api'], int(row['team_id_api']), row['team_api'])
             
     st.success("Player data synchronization complete!")
@@ -217,7 +231,6 @@ def _fetch_all_players_from_api():
             
     return pd.DataFrame(all_player_details)
 
-# --- MODIFIED: This function now also creates default base ratings ---
 def _bulk_insert_players(supabase, df):
     """Helper to insert a dataframe of new players and their default base ratings."""
     if df.empty:
@@ -230,7 +243,7 @@ def _bulk_insert_players(supabase, df):
         print(f"  -> Successfully inserted {len(df)} new players into 'players' table.")
     except Exception as e:
         print(f"  -> ERROR inserting new players into 'players' table: {e}")
-        return # Stop if we can't insert the players, as ratings would fail anyway
+        return
 
     # 2. Create and insert default base ratings for those new players
     try:

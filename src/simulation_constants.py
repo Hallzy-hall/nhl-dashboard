@@ -34,7 +34,7 @@ SIMULATION_PARAMETERS = {
 
     'pp_logic': {
         'zone_entry_hazard': 450.0,
-        'shot_multiplier': 1.45,
+        'shot_multiplier': 1.65,
         'pass_multiplier': 2.0,
         'turnover_multiplier': 0.3,
         'five_on_three_shot_multiplier': 4.0,
