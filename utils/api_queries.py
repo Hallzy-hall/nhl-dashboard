@@ -1,6 +1,6 @@
 import requests
 import pandas as pd
-from datetime import datetime, timedelta # MODIFIED: Added timedelta
+from datetime import datetime, timedelta
 import streamlit as st
 import json
 from utils.db_queries import get_teams, _create_supabase_client
@@ -80,7 +80,7 @@ def update_schedule_in_db():
         return
     print(f"Found {len(schedule_games)} raw game entries from API.")
 
-    # --- NEW: De-duplicate the data before processing ---
+    # --- De-duplicate the data before processing ---
     if schedule_games:
         games_df = pd.DataFrame(schedule_games)
         games_df.drop_duplicates(subset=['id'], keep='first', inplace=True)
@@ -120,27 +120,26 @@ def update_schedule_in_db():
         print("No valid games to upsert.")
 
 # =============================================================================
-#  PLAYER SYNC FUNCTIONS (UNCHANGED)
+#  PLAYER SYNC FUNCTIONS (MODIFIED FOR AUTOMATION)
 # =============================================================================
 
 def sync_all_player_data():
     """
     Comprehensive script to sync the Supabase 'players' table with the NHL API.
+    Uses print() for logging to be compatible with automation.
     """
-    st.info("Starting comprehensive player data synchronization...")
     print("--- Starting Player Roster Sync ---")
     
     supabase = _create_supabase_client()
     
     api_players_df = _fetch_all_players_from_api()
     if api_players_df.empty:
-        st.error("Could not fetch player data from API. Aborting sync.")
+        print("ERROR: Could not fetch player data from API. Aborting sync.")
         return
 
     db_players_df = pd.DataFrame(supabase.table('players').select('player_id, full_name, team, team_id').execute().data)
     db_players_df['player_id'] = db_players_df['player_id'].astype(str)
     
-    st.info(f"Fetched {len(api_players_df)} players from API. Found {len(db_players_df)} players in the database.")
     print(f"Fetched {len(api_players_df)} players from API. Found {len(db_players_df)} players in the database.")
 
     comparison_df = pd.merge(
@@ -158,7 +157,6 @@ def sync_all_player_data():
     players_with_team_change = existing_players[existing_players['team'] != existing_players['team_api']]
 
     if not new_players.empty:
-        st.info(f"Found {len(new_players)} new players to add.")
         print(f"Found {len(new_players)} new players to add.")
         cols_to_insert = [
             'player_id', 'full_name_api', 'position', 'jersey_number', 'team_api', 
@@ -171,13 +169,11 @@ def sync_all_player_data():
         _bulk_insert_players(supabase, new_players_to_insert)
 
     if not inactive_players.empty:
-        st.info(f"Found {len(inactive_players)} inactive players to update to UFA.")
         print(f"Found {len(inactive_players)} inactive players to update to UFA.")
         for index, row in inactive_players.iterrows():
             _handle_ufa_player(supabase, str(row['player_id']), row['full_name'])
 
     if not players_with_team_change.empty:
-        st.info(f"Found {len(players_with_team_change)} players with team changes.")
         print(f"Found {len(players_with_team_change)} players with team changes.")
         for index, row in players_with_team_change.iterrows():
             if pd.isna(row['team_id_api']):
@@ -185,7 +181,6 @@ def sync_all_player_data():
             else:
                 _update_player_team(supabase, str(row['player_id']), row['full_name_api'], int(row['team_id_api']), row['team_api'])
             
-    st.success("Player data synchronization complete!")
     print("--- Player Roster Sync Complete ---")
 
 def _fetch_all_players_from_api():
