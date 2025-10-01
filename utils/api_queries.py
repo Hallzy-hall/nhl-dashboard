@@ -53,34 +53,38 @@ def update_schedule_in_db():
     """
     Fetches the latest NHL schedule, maps teams to internal IDs using their
     abbreviations, and upserts the data into the 'schedule' table in Supabase.
+    This version uses print() for logging to be compatible with automation scripts.
     """
+    print("Attempting to update schedule in database...")
     # 1. Fetch our team mapping to match abbreviations to IDs
     teams_df = get_teams()
     if teams_df.empty:
-        st.error("Could not retrieve team mapping from database. Aborting schedule update.")
+        print("ERROR: Could not retrieve team mapping from database. Aborting schedule update.")
         return
-    
+
     team_abbr_to_id = pd.Series(teams_df.team_id.values, index=teams_df.nhl_team_abbr).to_dict()
 
-    # 2. Fetch the schedule data from the new live API function
+    # 2. Fetch the schedule data from the live API function
+    print("Fetching latest schedule from NHL API...")
     schedule_games = fetch_nhl_schedule()
     if not schedule_games:
-        st.warning("No games found in the schedule to update.")
+        print("Warning: No games found in the schedule to update.")
         return
+    print(f"Found {len(schedule_games)} games to process.")
 
     # 3. Process the data and prepare it for the database
     games_to_upsert = []
-    for game in schedule_games: # MODIFIED: Removed the 15-game limit
-        home_team_abbr = game["home_team_abbr"]
-        away_team_abbr = game["away_team_abbr"]
+    for game in schedule_games:
+        home_team_abbr = game.get("home_team_abbr")
+        away_team_abbr = game.get("away_team_abbr")
 
         home_team_id = team_abbr_to_id.get(home_team_abbr)
         away_team_id = team_abbr_to_id.get(away_team_abbr)
 
         if home_team_id and away_team_id:
             game_data = {
-                "game_id": game["id"],
-                "game_date": game["startTimeUTC"],
+                "game_id": game.get("id"),
+                "game_date": game.get("startTimeUTC"),
                 "home_team_id": home_team_id,
                 "away_team_id": away_team_id,
                 "status": game.get("gameScheduleState", "SCHEDULED")
@@ -89,12 +93,15 @@ def update_schedule_in_db():
 
     # 4. Upsert the data into our Supabase 'schedule' table
     if games_to_upsert:
+        print(f"Upserting {len(games_to_upsert)} games to the 'schedule' table...")
         try:
             supabase = _create_supabase_client()
             supabase.table("schedule").upsert(games_to_upsert, on_conflict="game_id").execute()
-            st.success(f"Successfully updated schedule with {len(games_to_upsert)} games.")
+            print(f"Successfully updated schedule with {len(games_to_upsert)} games.")
         except Exception as e:
-            st.error(f"Error upserting schedule data: {e}")
+            print(f"ERROR: Error upserting schedule data: {e}")
+    else:
+        print("No valid games to upsert.")
 
 # =============================================================================
 #  PLAYER SYNC FUNCTIONS (UNCHANGED)
