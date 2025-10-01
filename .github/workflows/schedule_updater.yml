@@ -41,4 +41,4 @@ jobs:
         # These are the secrets you will set up in the next part
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      run: python scripts/sync_schedule.py
+      run: python sync_schedule.py
