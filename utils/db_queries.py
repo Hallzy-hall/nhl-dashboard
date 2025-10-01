@@ -4,7 +4,8 @@ import json
 import numpy as np
 from io import StringIO
 from supabase import create_client, Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
+import pytz
 
 def _create_supabase_client():
     """Initializes and returns a Supabase client instance."""
@@ -269,27 +270,41 @@ def log_rating_change(player_id, player_name, rating_name, old_value, new_value,
 @st.cache_data(ttl=3600) # Cache the schedule for 1 hour
 def get_schedule():
     """
-    Fetches the schedule for a 7-day window (yesterday to 5 days from now)
-    from the Supabase database and formats it for the dropdown.
+    Fetches the schedule for a 7-day window based on the Pacific Time Zone
+    and formats it for the dropdown. This function is NOT cached to ensure
+    it always shows the latest data after a database update.
     """
     try:
         supabase = _create_supabase_client()
         
-        # --- NEW: Date Filtering Logic ---
-        today = datetime.now().date()
-        start_date = today - timedelta(days=1)
-        end_date = today + timedelta(days=5)
+        # --- NEW: Timezone-Aware Date Filtering Logic ---
+        # 1. Define the Pacific Time Zone
+        pacific_tz = pytz.timezone("America/Los_Angeles")
 
-        # Query the schedule table, joining with team_mapping to get abbreviations,
-        # and filtering by the calculated date range.
+        # 2. Get the current date in PST
+        today_pst = datetime.now(pacific_tz).date()
+        
+        # 3. Define the 7-day window in PST
+        start_date_pst = today_pst - timedelta(days=1)
+        end_date_pst = today_pst + timedelta(days=5)
+
+        # 4. Convert the PST date boundaries to timezone-aware datetime objects
+        start_datetime_pst = pacific_tz.localize(datetime.combine(start_date_pst, time.min))
+        end_datetime_pst = pacific_tz.localize(datetime.combine(end_date_pst, time.max))
+
+        # 5. Convert the PST boundaries to UTC for the database query
+        start_datetime_utc = start_datetime_pst.astimezone(pytz.utc)
+        end_datetime_utc = end_datetime_pst.astimezone(pytz.utc)
+
+        # 6. Query the database using the UTC boundaries
         response = supabase.table('schedule').select(
             'game_id, game_date, '
             'home_team:team_mapping!schedule_home_team_id_fkey(nhl_team_abbr), '
             'away_team:team_mapping!schedule_away_team_id_fkey(nhl_team_abbr)'
         ).gte(
-            'game_date', start_date.isoformat()
+            'game_date', start_datetime_utc.isoformat()
         ).lte(
-            'game_date', (end_date + timedelta(days=1)).isoformat() # Add 1 day to include the entire end date
+            'game_date', end_datetime_utc.isoformat()
         ).order(
             'game_date', desc=False
         ).execute()
@@ -298,12 +313,18 @@ def get_schedule():
         if response.data:
             df = pd.DataFrame(response.data)
             
+            # Convert game_date from UTC string to timezone-aware datetime objects
+            df['game_date_utc'] = pd.to_datetime(df['game_date'])
+            
+            # Convert to Pacific Time for display
+            df['game_date_pst'] = df['game_date_utc'].dt.tz_convert(pacific_tz)
+
             # Extract nested team abbreviations safely
             df['home_team_abbr'] = df['home_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
             df['away_team_abbr'] = df['away_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
             
-            # Format the date for display (YYYY-MM-DD)
-            df['display_date'] = pd.to_datetime(df['game_date']).dt.strftime('%Y-%m-%d')
+            # Format the PST date for display (YYYY-MM-DD)
+            df['display_date'] = df['game_date_pst'].dt.strftime('%Y-%m-%d')
 
             # Create the display string for the dropdown
             df['display_name'] = df['display_date'] + ": " + df['away_team_abbr'] + " @ " + df['home_team_abbr']
