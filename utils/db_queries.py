@@ -4,6 +4,7 @@ import json
 import numpy as np
 from io import StringIO
 from supabase import create_client, Client
+from datetime import datetime, timedelta
 
 def _create_supabase_client():
     """Initializes and returns a Supabase client instance."""
@@ -265,20 +266,56 @@ def log_rating_change(player_id, player_name, rating_name, old_value, new_value,
     except Exception as e:
         print(f"Error logging rating change: {e}")
         
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600) # Cache the schedule for 1 hour
 def get_schedule():
-    """Retrieves the upcoming schedule from the database and formats it for display."""
+    """
+    Fetches the schedule for a 7-day window (yesterday to 5 days from now)
+    from the Supabase database and formats it for the dropdown.
+    """
     try:
         supabase = _create_supabase_client()
-        response = supabase.rpc('get_schedule_with_team_names').execute()
+        
+        # --- NEW: Date Filtering Logic ---
+        today = datetime.now().date()
+        start_date = today - timedelta(days=1)
+        end_date = today + timedelta(days=5)
+
+        # Query the schedule table, joining with team_mapping to get abbreviations,
+        # and filtering by the calculated date range.
+        response = supabase.table('schedule').select(
+            'game_id, game_date, '
+            'home_team:team_mapping!schedule_home_team_id_fkey(nhl_team_abbr), '
+            'away_team:team_mapping!schedule_away_team_id_fkey(nhl_team_abbr)'
+        ).gte(
+            'game_date', start_date.isoformat()
+        ).lte(
+            'game_date', (end_date + timedelta(days=1)).isoformat() # Add 1 day to include the entire end date
+        ).order(
+            'game_date', desc=False
+        ).execute()
+        # --------------------------------
+
         if response.data:
             df = pd.DataFrame(response.data)
-            df['display_name'] = df['away_team_name'] + ' @ ' + df['home_team_name'] + ' (' + pd.to_datetime(df['game_date']).dt.strftime('%Y-%m-%d') + ')'
-            return df.sort_values('game_date')
-        return pd.DataFrame()
+            
+            # Extract nested team abbreviations safely
+            df['home_team_abbr'] = df['home_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
+            df['away_team_abbr'] = df['away_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
+            
+            # Format the date for display (YYYY-MM-DD)
+            df['display_date'] = pd.to_datetime(df['game_date']).dt.strftime('%Y-%m-%d')
+
+            # Create the display string for the dropdown
+            df['display_name'] = df['display_date'] + ": " + df['away_team_abbr'] + " @ " + df['home_team_abbr']
+            
+            # Return only the necessary columns
+            return df[['game_id', 'display_name']]
+        else:
+            return pd.DataFrame(columns=['game_id', 'display_name'])
+
     except Exception as e:
         st.error(f"Error fetching schedule from DB: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(columns=['game_id', 'display_name'])
     
 @st.cache_data
 def get_full_goalie_data(team_id: int):
