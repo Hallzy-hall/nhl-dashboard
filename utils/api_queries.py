@@ -2,77 +2,93 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta # MODIFIED: Added timedelta
 import streamlit as st
+import json
 from utils.db_queries import get_teams, _create_supabase_client
 
 def fetch_nhl_schedule():
     """
-    Fetches the NHL schedule for a 7-day window: the previous day, the current day,
-    and the next five days from the live NHL API.
+    Fetches the NHL schedule for a 7-day window and prints the raw data
+    for the first day to help diagnose preseason game visibility.
     """
     all_games = []
     today = datetime.now()
-    
+
     # Loop through a 7-day window (-1 day to +5 days)
     for i in range(-1, 6):
         date_to_fetch = today + timedelta(days=i)
         formatted_date = date_to_fetch.strftime('%Y-%m-%d')
         
-        # Construct the API URL for the specific date
         api_url = f"https://api-web.nhle.com/v1/schedule/{formatted_date}"
         
         try:
             response = requests.get(api_url)
-            response.raise_for_status() # Raise an exception for bad status codes
+            response.raise_for_status()
             data = response.json()
+
+            # --- DIAGNOSTIC STEP ---
+            # For the first day we check, print the raw data to see its structure
+            if i == -1:
+                print("--- RAW API DATA FOR TODAY ---")
+                print(json.dumps(data, indent=2))
+                print("------------------------------")
             
             # The games are located in the 'gameWeek' list for each day
             for day in data.get('gameWeek', []):
                 for game in day.get('games', []):
-                    game_id = game.get('id')
-                    game_date = game.get('startTimeUTC') # Using startTimeUTC for precision
-                    home_team = game.get('homeTeam', {}).get('abbrev')
-                    away_team = game.get('awayTeam', {}).get('abbrev')
-                    game_state = game.get('gameState') # e.g., 'OFF', 'LIVE', 'FUT'
+                    # We will now check the gameType to include preseason games
+                    # Preseason games typically have a gameType of 1
+                    if game.get('gameType') == 1 or game.get('gameType') == 2:
+                        game_id = game.get('id')
+                        game_date = game.get('startTimeUTC')
+                        home_team = game.get('homeTeam', {}).get('abbrev')
+                        away_team = game.get('awayTeam', {}).get('abbrev')
+                        game_state = game.get('gameState')
 
-                    if game_id and game_date and home_team and away_team:
-                        all_games.append({
-                            "id": game_id,
-                            "startTimeUTC": game_date,
-                            "home_team_abbr": home_team,
-                            "away_team_abbr": away_team,
-                            "gameScheduleState": game_state
-                        })
+                        if game_id and game_date and home_team and away_team:
+                            all_games.append({
+                                "id": game_id,
+                                "startTimeUTC": game_date,
+                                "home_team_abbr": home_team,
+                                "away_team_abbr": away_team,
+                                "gameScheduleState": game_state
+                            })
                         
         except requests.exceptions.RequestException as e:
-            st.error(f"Error fetching schedule data for {formatted_date}: {e}")
-            continue # Continue to the next day if an error occurs
+            print(f"Error fetching data for {formatted_date}: {e}")
+            continue
 
     return all_games
     
 def update_schedule_in_db():
     """
-    Fetches the latest NHL schedule, maps teams to internal IDs using their
-    abbreviations, and upserts the data into the 'schedule' table in Supabase.
-    This version uses print() for logging to be compatible with automation scripts.
+    Fetches the latest NHL schedule, removes duplicates, maps teams to internal
+    IDs, and upserts the data into the 'schedule' table in Supabase.
     """
     print("Attempting to update schedule in database...")
-    # 1. Fetch our team mapping to match abbreviations to IDs
+    # 1. Fetch team mapping
     teams_df = get_teams()
     if teams_df.empty:
         print("ERROR: Could not retrieve team mapping from database. Aborting schedule update.")
         return
-
     team_abbr_to_id = pd.Series(teams_df.team_id.values, index=teams_df.nhl_team_abbr).to_dict()
 
-    # 2. Fetch the schedule data from the live API function
+    # 2. Fetch the schedule data
     print("Fetching latest schedule from NHL API...")
     schedule_games = fetch_nhl_schedule()
     if not schedule_games:
         print("Warning: No games found in the schedule to update.")
         return
-    print(f"Found {len(schedule_games)} games to process.")
+    print(f"Found {len(schedule_games)} raw game entries from API.")
 
-    # 3. Process the data and prepare it for the database
+    # --- NEW: De-duplicate the data before processing ---
+    if schedule_games:
+        games_df = pd.DataFrame(schedule_games)
+        games_df.drop_duplicates(subset=['id'], keep='first', inplace=True)
+        schedule_games = games_df.to_dict('records')
+        print(f"Processing {len(schedule_games)} unique games after de-duplication.")
+    # ----------------------------------------------------
+
+    # 3. Process the unique games
     games_to_upsert = []
     for game in schedule_games:
         home_team_abbr = game.get("home_team_abbr")
@@ -91,7 +107,7 @@ def update_schedule_in_db():
             }
             games_to_upsert.append(game_data)
 
-    # 4. Upsert the data into our Supabase 'schedule' table
+    # 4. Upsert the clean data
     if games_to_upsert:
         print(f"Upserting {len(games_to_upsert)} games to the 'schedule' table...")
         try:
