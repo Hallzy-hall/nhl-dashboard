@@ -330,7 +330,7 @@ def get_schedule():
             df['display_name'] = df['display_date'] + ": " + df['away_team_abbr'] + " @ " + df['home_team_abbr']
             
             # Return only the necessary columns
-            return df[['game_id', 'display_name']]
+            return df[['game_id', 'display_name', 'home_team_id', 'away_team_id']]
         else:
             return pd.DataFrame(columns=['game_id', 'display_name'])
 
