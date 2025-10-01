@@ -277,30 +277,22 @@ def get_schedule():
     try:
         supabase = _create_supabase_client()
         
-        # --- NEW: Timezone-Aware Date Filtering Logic ---
-        # 1. Define the Pacific Time Zone
+        # --- Timezone-Aware Date Filtering Logic ---
         pacific_tz = pytz.timezone("America/Los_Angeles")
-
-        # 2. Get the current date in PST
         today_pst = datetime.now(pacific_tz).date()
-        
-        # 3. Define the 7-day window in PST
         start_date_pst = today_pst - timedelta(days=1)
         end_date_pst = today_pst + timedelta(days=5)
-
-        # 4. Convert the PST date boundaries to timezone-aware datetime objects
         start_datetime_pst = pacific_tz.localize(datetime.combine(start_date_pst, time.min))
         end_datetime_pst = pacific_tz.localize(datetime.combine(end_date_pst, time.max))
-
-        # 5. Convert the PST boundaries to UTC for the database query
         start_datetime_utc = start_datetime_pst.astimezone(pytz.utc)
         end_datetime_utc = end_datetime_pst.astimezone(pytz.utc)
 
-        # 6. Query the database using the UTC boundaries
+        # --- CORRECTED QUERY ---
+        # Now also selecting home_team_id and away_team_id directly from the schedule table
         response = supabase.table('schedule').select(
-            'game_id, game_date, '
-            'home_team:team_mapping!schedule_home_team_id_fkey(nhl_team_abbr), '
-            'away_team:team_mapping!schedule_away_team_id_fkey(nhl_team_abbr)'
+            'game_id, game_date, home_team_id, away_team_id, ' # <-- The fix is here
+            'home_team_map:team_mapping!schedule_home_team_id_fkey(nhl_team_abbr), '
+            'away_team_map:team_mapping!schedule_away_team_id_fkey(nhl_team_abbr)'
         ).gte(
             'game_date', start_datetime_utc.isoformat()
         ).lte(
@@ -308,35 +300,32 @@ def get_schedule():
         ).order(
             'game_date', desc=False
         ).execute()
-        # --------------------------------
+        # ------------------------
 
         if response.data:
             df = pd.DataFrame(response.data)
             
-            # Convert game_date from UTC string to timezone-aware datetime objects
+            # Convert game_date to PST for display
             df['game_date_utc'] = pd.to_datetime(df['game_date'])
-            
-            # Convert to Pacific Time for display
             df['game_date_pst'] = df['game_date_utc'].dt.tz_convert(pacific_tz)
-
-            # Extract nested team abbreviations safely
-            df['home_team_abbr'] = df['home_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
-            df['away_team_abbr'] = df['away_team'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
-            
-            # Format the PST date for display (YYYY-MM-DD)
             df['display_date'] = df['game_date_pst'].dt.strftime('%Y-%m-%d')
 
-            # Create the display string for the dropdown
+            # Extract abbreviations safely
+            df['home_team_abbr'] = df['home_team_map'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
+            df['away_team_abbr'] = df['away_team_map'].apply(lambda x: x.get('nhl_team_abbr') if isinstance(x, dict) else 'N/A')
+            
+            # Create the display name
             df['display_name'] = df['display_date'] + ": " + df['away_team_abbr'] + " @ " + df['home_team_abbr']
             
-            # Return only the necessary columns
+            # --- CORRECTED RETURN ---
+            # Now the required columns exist in the DataFrame
             return df[['game_id', 'display_name', 'home_team_id', 'away_team_id']]
         else:
-            return pd.DataFrame(columns=['game_id', 'display_name'])
+            return pd.DataFrame(columns=['game_id', 'display_name', 'home_team_id', 'away_team_id'])
 
     except Exception as e:
         st.error(f"Error fetching schedule from DB: {e}")
-        return pd.DataFrame(columns=['game_id', 'display_name'])
+        return pd.DataFrame(columns=['game_id', 'display_name', 'home_team_id', 'away_team_id'])
     
 @st.cache_data
 def get_full_goalie_data(team_id: int):
