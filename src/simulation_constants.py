@@ -1,9 +1,9 @@
 # All rates are in "events per 60 minutes" of the relevant state.
 BASE_HAZARD_RATES = {
     # Puck Possession & Transition
-    'shot_high_danger': 35.0,
-    'shot_medium_danger': 46,
-    'shot_low_danger': 105,
+    'shot_high_danger': 42.0,
+    'shot_medium_danger': 59,
+    'shot_low_danger': 106,
     'pass_attempt': 1100.0,
     'turnover': 0.3,
     'controlled_exit': 800.0,
@@ -34,7 +34,7 @@ SIMULATION_PARAMETERS = {
 
     'pp_logic': {
         'zone_entry_hazard': 450.0,
-        'shot_multiplier': 1.65,
+        'shot_multiplier': 1.85,
         'pass_multiplier': 2.0,
         'turnover_multiplier': 0.3,
         'five_on_three_shot_multiplier': 4.0,

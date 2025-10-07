@@ -11,3 +11,6 @@ psycopg2-binary
 SQLAlchemy
 python-dotenv
 requests
+Flask
+gunicorn
+toml

@@ -4,9 +4,11 @@ import pandas as pd
 import math
 from scipy.stats import poisson
 
+
 # ==============================================================================
 # --- CONFIGURATIONS ---
 # ==============================================================================
+
 
 # Defines the vig (margin) percentage for each market type.
 MARKET_MARGINS = {
@@ -17,9 +19,12 @@ MARKET_MARGINS = {
 }
 
 
+
+
 # ==============================================================================
 # --- HELPER & TOI FUNCTIONS ---
 # ==============================================================================
+
 
 def calculate_toi_distribution(coach_profile, game_roster, pim_for, pim_against):
     """
@@ -27,8 +32,10 @@ def calculate_toi_distribution(coach_profile, game_roster, pim_for, pim_against)
     """
     player_toi = {p['name']: {'PP': 0, 'PK': 0, 'ES': 0} for p in game_roster}
 
+
     pp_shares = coach_profile.get('pp_unit_shares', {})
     pk_shares = coach_profile.get('pk_unit_shares', {})
+
 
     for p in game_roster:
         for role in p.get('st_roles', []):
@@ -37,18 +44,22 @@ def calculate_toi_distribution(coach_profile, game_roster, pim_for, pim_against)
             elif role == 'PK1': player_toi[p['name']]['PK'] = pim_for * pk_shares.get('PK1', 0.55)
             elif role == 'PK2': player_toi[p['name']]['PK'] = pim_for * pk_shares.get('PK2', 0.45)
 
+
     total_skater_minutes = 300
     pp_skater_minutes_used = pim_against * 5
     pk_skater_minutes_used = pim_for * 4
     total_es_skater_minutes = total_skater_minutes - pp_skater_minutes_used - pk_skater_minutes_used
 
+
     T_ES_Forwards_Total = total_es_skater_minutes * 0.6
     T_ES_Defense_Total = total_es_skater_minutes * 0.4
+
 
     es_players = [p for p in game_roster if p.get('line') and p.get('line').startswith(('F', 'D'))]
     forward_players = [p for p in es_players if p['position'] in ['L', 'C', 'R']]
     defense_players = [p for p in es_players if p['position'] == 'D']
     es_profile = coach_profile.get('toi_profile', {})
+
 
     if forward_players:
         total_fwd_score = sum(es_profile.get('forwards', {}).get(p['line'], 0) * (p.get('toi_individual_rating', 1000) / 1000.0) for p in forward_players)
@@ -57,6 +68,7 @@ def calculate_toi_distribution(coach_profile, game_roster, pim_for, pim_against)
                 score = es_profile.get('forwards', {}).get(p['line'], 0) * (p.get('toi_individual_rating', 1000) / 1000.0)
                 player_toi[p['name']]['ES'] = (score / total_fwd_score) * T_ES_Forwards_Total
 
+
     if defense_players:
         total_def_score = sum(es_profile.get('defense', {}).get(p['line'], 0) * (p.get('toi_individual_rating', 1000) / 1000.0) for p in defense_players)
         if total_def_score > 0:
@@ -64,13 +76,16 @@ def calculate_toi_distribution(coach_profile, game_roster, pim_for, pim_against)
                 score = es_profile.get('defense', {}).get(p['line'], 0) * (p.get('toi_individual_rating', 1000) / 1000.0)
                 player_toi[p['name']]['ES'] = (score / total_def_score) * T_ES_Defense_Total
 
+
     final_results = {}
     for name, toi_parts in player_toi.items():
         if any(p['name'] == name for p in game_roster):
             toi_parts['Total'] = toi_parts['PP'] + toi_parts['PK'] + toi_parts['ES']
             final_results[name] = toi_parts
 
+
     return final_results
+
 
 def calculate_line_score(player_ids: list):
     """ Placeholder function to prevent import errors. """
@@ -78,9 +93,12 @@ def calculate_line_score(player_ids: list):
     return 0
 
 
+
+
 # ==============================================================================
 # --- CORE ODDS CONVERSION FUNCTIONS ---
 # ==============================================================================
+
 
 def _probability_to_american_odds(prob: float) -> int:
     """Converts a probability to American odds."""
@@ -91,19 +109,24 @@ def _probability_to_american_odds(prob: float) -> int:
     else:
         return round(((1 - prob) / prob) * 100)
 
+
 def _probability_to_decimal_odds(prob: float) -> float:
     """Converts a probability to Decimal odds."""
     if prob <= 0: return 999.0
     return round(1 / prob, 2)
+
 
 def _poisson_pmf(k, lam):
     """Calculates the probability mass function for a Poisson distribution."""
     return poisson.pmf(k, lam)
 
 
+
+
 # ==============================================================================
 # --- MAIN CALCULATION ENGINES ---
 # ==============================================================================
+
 
 def calculate_betting_odds(all_game_scores: list):
     """
@@ -111,29 +134,32 @@ def calculate_betting_odds(all_game_scores: list):
     """
     if not all_game_scores:
         return {}
-    
+   
     scores_df = pd.DataFrame(all_game_scores, columns=['home_score', 'away_score'])
-    
+   
     odds = {}
-    
+   
     # --- Moneyline Calculation (FIXED) ---
     home_wins = (scores_df['home_score'] > scores_df['away_score']).sum()
     away_wins = (scores_df['away_score'] > scores_df['home_score']).sum()
     total_decisions = home_wins + away_wins
-    
+   
     if total_decisions == 0:
         home_win_prob, away_win_prob = 0.5, 0.5
     else:
         home_win_prob = home_wins / total_decisions
         away_win_prob = away_wins / total_decisions
 
+
     margin = MARKET_MARGINS.get("moneyline", 0)
     denominator_ml = home_win_prob + away_win_prob + margin
     home_win_prob_vig = home_win_prob / denominator_ml if denominator_ml > 0 else 0
     away_win_prob_vig = away_win_prob / denominator_ml if denominator_ml > 0 else 0
 
+
     home_american_ml = _probability_to_american_odds(home_win_prob_vig)
     away_american_ml = _probability_to_american_odds(away_win_prob_vig)
+
 
     odds['moneyline'] = {
         'home': home_american_ml,
@@ -144,21 +170,39 @@ def calculate_betting_odds(all_game_scores: list):
         'away_decimal': _probability_to_decimal_odds(away_win_prob_vig),
     }
 
-    # --- Puckline Calculation ---
-    home_puckline_spread = -1.5
-    away_puckline_spread = +1.5
-    
-    home_covers_prob = (scores_df['home_score'] + home_puckline_spread > scores_df['away_score']).mean()
-    away_covers_prob = 1 - home_covers_prob
-    
+
+    # --- Puckline Calculation (NEW DYNAMIC LOGIC) ---
+    is_home_fav = home_win_prob > away_win_prob
+    prob_cover_1_5 = (scores_df['home_score'] - scores_df['away_score'] > 1.5).mean() if is_home_fav else (scores_df['away_score'] - scores_df['home_score'] > 1.5).mean()
+    prob_cover_2_5 = (scores_df['home_score'] - scores_df['away_score'] > 2.5).mean() if is_home_fav else (scores_df['away_score'] - scores_df['home_score'] > 2.5).mean()
+
+
+    dist_from_fifty_1_5 = abs(prob_cover_1_5 - 0.5)
+    dist_from_fifty_2_5 = abs(prob_cover_2_5 - 0.5)
+
+
+    main_spread = 2.5 if dist_from_fifty_2_5 < dist_from_fifty_1_5 else 1.5
+    prob_fav_covers = prob_cover_2_5 if main_spread == 2.5 else prob_cover_1_5
+
+
+    if is_home_fav:
+        home_puckline_spread, away_puckline_spread = -main_spread, +main_spread
+        home_covers_prob, away_covers_prob = prob_fav_covers, 1 - prob_fav_covers
+    else:
+        home_puckline_spread, away_puckline_spread = +main_spread, -main_spread
+        away_covers_prob, home_covers_prob = prob_fav_covers, 1 - prob_fav_covers
+
+
     margin_pl = MARKET_MARGINS.get("puckline", 0)
     denominator_pl = home_covers_prob + away_covers_prob + margin_pl
     home_covers_prob_vig = home_covers_prob / denominator_pl if denominator_pl > 0 else 0
     away_covers_prob_vig = away_covers_prob / denominator_pl if denominator_pl > 0 else 0
 
+
     home_american_pl = _probability_to_american_odds(home_covers_prob_vig)
     away_american_pl = _probability_to_american_odds(away_covers_prob_vig)
-    
+
+
     odds['puckline'] = {
         'home_spread': home_puckline_spread, 'away_spread': away_puckline_spread,
         'home_odds': home_american_pl, 'away_odds': away_american_pl,
@@ -166,23 +210,24 @@ def calculate_betting_odds(all_game_scores: list):
         'home_decimal': _probability_to_decimal_odds(home_covers_prob_vig),
         'away_decimal': _probability_to_decimal_odds(away_covers_prob_vig),
     }
-    
+   
     # --- Total Calculation ---
     total_goals = scores_df['home_score'] + scores_df['away_score']
     median_total = total_goals.median()
     total_line = round(median_total * 2) / 2
-    
+   
     over_prob = (total_goals > total_line).mean()
     under_prob = (total_goals < total_line).mean()
-    
+   
     margin_total = MARKET_MARGINS.get("total", 0)
     denominator_total = over_prob + under_prob + margin_total
     over_prob_vig = over_prob / denominator_total if denominator_total > 0 else 0
     under_prob_vig = under_prob / denominator_total if denominator_total > 0 else 0
 
+
     over_american_total = _probability_to_american_odds(over_prob_vig)
     under_american_total = _probability_to_american_odds(under_prob_vig)
-    
+   
     odds['total'] = {
         'line': total_line,
         'over': over_american_total, 'under': under_american_total,
@@ -191,7 +236,9 @@ def calculate_betting_odds(all_game_scores: list):
         'under_decimal': _probability_to_decimal_odds(under_prob_vig),
     }
 
+
     return odds
+
 
 def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, away_team_info: dict):
     """
@@ -199,17 +246,27 @@ def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, 
     """
     if player_stats_df.empty:
         return {}
-        
+       
     props_data = {'goals': [], 'assists': [], 'points': [], 'shots': [], 'blocks': []}
     margin = MARKET_MARGINS.get("player_props", 0.0)
 
-    expected_stat_cols = {
-        'goals': 'Goals_Total', 'assists': 'Assists_Total',
-        'shots': 'Shots_Total', 'blocks': 'Blocks_Total'
-    }
 
-    player_stats_df['Points_Total'] = player_stats_df[expected_stat_cols['goals']] + player_stats_df[expected_stat_cols['assists']]
-    expected_stat_cols['points'] = 'Points_Total'
+    # --- FIX: Use the correct, aggregated column names from the simulation ---
+    if 'Blocks_Total' not in player_stats_df.columns:
+        player_stats_df['Blocks_Total'] = 0
+   
+    # Rename columns for simplicity within this function
+    player_stats_df = player_stats_df.rename(columns={
+        'Goals_Total': 'goals',
+        'Assists_Total': 'assists',
+        'Shots_Total': 'shots',
+        'Blocks_Total': 'blocks'
+    })
+   
+    player_stats_df['points'] = player_stats_df['goals'] + player_stats_df['assists']
+   
+    prop_markets_to_calculate = ['goals', 'assists', 'points', 'shots', 'blocks']
+
 
     for _, player_row in player_stats_df.iterrows():
         team_name = player_row.get('team_name')
@@ -220,9 +277,11 @@ def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, 
         else:
             team_color = None
 
-        for prop_market, stat_col in expected_stat_cols.items():
-            expected_value = player_row.get(stat_col, 0)
+
+        for prop_market in prop_markets_to_calculate:
+            expected_value = player_row.get(prop_market, 0)
             if expected_value <= 0: continue
+
 
             if prop_market in ['goals', 'assists', 'points']:
                 line = 0.5
@@ -234,12 +293,13 @@ def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, 
                 prob_under = sum(_poisson_pmf(k, expected_value) for k in k_values_under)
             else:
                 continue
-            
+           
             prob_over = 1 - prob_under
-            
+           
             denominator = prob_over + prob_under + margin
             prob_over_vig = prob_over / denominator if denominator > 0 else 0
             prob_under_vig = prob_under / denominator if denominator > 0 else 0
+
 
             props_data[prop_market].append({
                 'player': player_row['Player'],
@@ -251,5 +311,5 @@ def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, 
                 'under_decimal': _probability_to_decimal_odds(prob_under_vig)
             })
 
-    return props_data
 
+    return props_data

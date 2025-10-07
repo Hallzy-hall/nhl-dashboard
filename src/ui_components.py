@@ -53,7 +53,7 @@ def load_team_data(team_id: int, team_type: str, teams_df: pd.DataFrame):
     base_ratings = full_skater_data.copy()
     
     # Derive the simple roster from the full data
-    skater_roster = full_skater_data[['player_id', 'full_name', 'position']].copy()
+    skater_roster = full_skater_data[['player_id', 'name', 'position']].copy()
     skater_ids = skater_roster['player_id'].tolist()
     manual_ratings = get_manual_ratings_for_players(skater_ids)
     # --- END MODIFICATION ---
@@ -489,7 +489,7 @@ def render_team_ui(team_type: str, teams_df: pd.DataFrame):
         secondary_color = team_row['team_color_secondary'].iloc[0] if not team_row.empty and pd.notna(team_row['team_color_secondary'].iloc[0]) else "#FFFFFF"
         st.markdown(f'<div style="background-color:{team_color};color:{secondary_color};padding:10px;border-radius:5px;margin-bottom:1rem;text-align:center;"><h3>{team_name}</h3></div>', unsafe_allow_html=True)
         roster_df = team_data.get('roster', pd.DataFrame())
-        player_names = roster_df['full_name'].tolist() if not roster_df.empty else []
+        player_names = roster_df['name'].tolist() if not roster_df.empty else []
         coach_info = team_data.get('coach_data', {})
         
         if coach_info:

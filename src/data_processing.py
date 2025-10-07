@@ -156,7 +156,7 @@ def structure_dashboard_data_for_sim(team_type: str):
     roster_for_sim = []
     
     for _, player in full_roster_data.iterrows():
-        player_name = player["full_name"]
+        player_name = player["name"]
         player_id = str(player["player_id"])
         assigned_roles = player_roles.get(player_name, [])
         if not assigned_roles: continue

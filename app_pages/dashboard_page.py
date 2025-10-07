@@ -17,7 +17,7 @@ from utils.db_queries import (
     get_player_special_teams_actuals
 )
 from src.ui_components import render_team_ui, load_team_data, _apply_saved_state
-from src.simulation_engine import run_multiple_simulations
+from src.cloud_engine import run_cloud_simulations
 # --- MODIFIED: Import both odds calculation functions ---
 from src.calculations import calculate_betting_odds, calculate_player_props
 
@@ -615,7 +615,7 @@ def main():
                             home_sim_data = {'lineup': pd.DataFrame(home_lineup_data), 'coach': home_coach, 'goalie': home_goalie}
                             away_sim_data = {'lineup': pd.DataFrame(away_lineup_data), 'coach': away_coach, 'goalie': away_goalie}
                             with st.spinner("Running simulations..."):
-                                raw_results = run_multiple_simulations(100, home_sim_data, away_sim_data)
+                                raw_results = run_cloud_simulations(1000, home_sim_data, away_sim_data)
                                 
                                 main_odds = calculate_betting_odds(raw_results['all_game_scores'])
                                 
