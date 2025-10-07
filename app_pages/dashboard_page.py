@@ -60,27 +60,41 @@ def _prepare_display_df(df: pd.DataFrame, state: str, per_60: bool = False):
     if df.empty:
         return pd.DataFrame()
 
+    # Define the final, user-facing column names we want.
+    final_stat_cols = ['TOI', 'Goals', 'Assists', 'Shots', 'Shot Attempts', 'Blocks', '+/-', 'Penalty Minutes']
+    
+    # Define the source columns based on the game state (e.g., 'Goals_ES', 'TOI_Total')
+    if state == "Total":
+        source_cols = [f"{col}_Total" for col in final_stat_cols]
+    else:
+        source_cols = [f"{col}_{state}" for col in final_stat_cols]
+    
+    # Create the mapping from source name to final name for ONLY columns that exist in the dataframe
+    display_cols_map = {source: dest for source, dest in zip(source_cols, final_stat_cols) if source in df.columns}
+    
+    # Define the base columns that don't change
     base_cols = ['Player', 'player_id']
-    stat_cols = ['TOI', 'Goals', 'Assists', 'Shots', 'Shot Attempts', 'Blocks', '+/-', 'Penalty Minutes']
-
-    source_cols = [f"{col}_Total" for col in stat_cols]
-    if state != "Total":
-        source_cols = [f"{col}_{state}" for col in stat_cols]
-
-    display_cols_map = {source: dest for source, dest in zip(source_cols, stat_cols) if source in df.columns}
-    if not display_cols_map:
-        return pd.DataFrame(columns=base_cols + stat_cols)
-
-    final_df = df[base_cols + list(display_cols_map.keys())].copy()
+    
+    # The columns we need to select from the original dataframe are the base columns plus the source stat columns
+    cols_to_select = base_cols + list(display_cols_map.keys())
+    
+    # Create the new dataframe with just the columns we need
+    final_df = df[cols_to_select].copy()
+    
+    # Rename the stat columns to their user-facing names (e.g., 'Goals_Total' becomes 'Goals')
     final_df.rename(columns=display_cols_map, inplace=True)
-
+    
+    # Perform per/60 calculations if requested
     if 'TOI' in final_df.columns:
         if per_60:
-            rate_stats = [col for col in stat_cols if col not in ['TOI', '+/-'] and col in final_df.columns]
+            rate_stats = [col for col in final_stat_cols if col not in ['TOI', '+/-'] and col in final_df.columns]
             mask = final_df['TOI'] > 0
             for stat in rate_stats:
-                final_df[stat] = np.where(mask, (final_df[stat] / final_df['TOI']) * 3600, 0)
-
+                # Ensure the division is safe
+                if stat in final_df.columns:
+                    final_df[stat] = np.where(mask, (final_df[stat] / final_df['TOI']) * 3600, 0)
+        
+        # Convert TOI from seconds to minutes for display
         final_df['TOI'] = final_df['TOI'] / 60
 
     return final_df.round(2)

@@ -1,9 +1,9 @@
 # All rates are in "events per 60 minutes" of the relevant state.
 BASE_HAZARD_RATES = {
     # Puck Possession & Transition
-    'shot_high_danger': 42.0,
-    'shot_medium_danger': 59,
-    'shot_low_danger': 106,
+    'shot_high_danger': 45.0,
+    'shot_medium_danger': 71,
+    'shot_low_danger': 125,
     'pass_attempt': 1100.0,
     'turnover': 0.3,
     'controlled_exit': 800.0,

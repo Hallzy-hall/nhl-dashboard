@@ -287,7 +287,10 @@ def calculate_player_props(player_stats_df: pd.DataFrame, home_team_info: dict, 
                 line = 0.5
                 prob_under = _poisson_pmf(0, expected_value)
             elif prop_market in ['shots', 'blocks']:
-                line = round(expected_value * 2) / 2
+                if pd.isna(expected_value):
+                    line = 0.0
+                else:
+                    line = round(expected_value * 2) / 2
                 if line == 0: line = 0.5
                 k_values_under = np.arange(0, int(line) if line.is_integer() else int(line) + 1)
                 prob_under = sum(_poisson_pmf(k, expected_value) for k in k_values_under)
