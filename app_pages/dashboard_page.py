@@ -21,6 +21,10 @@ from src.cloud_engine import run_cloud_simulations
 # --- MODIFIED: Import both odds calculation functions ---
 from src.calculations import calculate_betting_odds, calculate_player_props
 
+# --- NEW: Import the function to calculate final player stats ---
+from src.simulation_engine import _finalize_player_stats
+
+
 # --- HELPER FUNCTIONS ---
 
 def style_diff_by_percent(row):
@@ -655,7 +659,7 @@ def main():
 
                                 st.session_state.all_sim_results[current_game_id] = final_results_to_save
                                 save_simulation_results(current_game_id, final_results_to_save)
-                            
+                                
                             st.success("Simulations Complete and Configuration Saved!")
                             st.rerun()
         with odds_col:
@@ -732,13 +736,31 @@ def main():
                 # --- FIX: Convert lists to DataFrames ---
                 home_df = pd.DataFrame(raw_results['home_players'])
                 away_df = pd.DataFrame(raw_results['away_players'])
-                
-                st.subheader(st.session_state.dashboard_data['home'].get('team_name', 'Home'))
-                st.dataframe(home_df[base_cols + selected_stats], use_container_width=True, hide_index=True)
-                
+
+                # --- THIS IS THE FIX ---
+                # Check if the dataframe is empty before proceeding
+                if not home_df.empty:
+                    # Process the raw data to calculate the validation stats
+                    home_df = _finalize_player_stats(home_df)
+                    st.subheader(st.session_state.dashboard_data['home'].get('team_name', 'Home'))
+                    # Check if all selected columns exist before trying to display them
+                    display_cols_home = base_cols + [col for col in selected_stats if col in home_df.columns]
+                    st.dataframe(home_df[display_cols_home], use_container_width=True, hide_index=True)
+                else:
+                    st.warning(f"No player data returned for {st.session_state.dashboard_data['home'].get('team_name', 'Home')}. The simulation may have encountered an error.")
+
                 st.divider()
-                st.subheader(st.session_state.dashboard_data['away'].get('team_name', 'Away'))
-                st.dataframe(away_df[base_cols + selected_stats], use_container_width=True, hide_index=True)
+
+                # --- THIS IS THE FIX ---
+                # Check if the dataframe is empty before proceeding
+                if not away_df.empty:
+                    away_df = _finalize_player_stats(away_df)
+                    st.subheader(st.session_state.dashboard_data['away'].get('team_name', 'Away'))
+                    # Check if all selected columns exist before trying to display them
+                    display_cols_away = base_cols + [col for col in selected_stats if col in away_df.columns]
+                    st.dataframe(away_df[display_cols_away], use_container_width=True, hide_index=True)
+                else:
+                    st.warning(f"No player data returned for {st.session_state.dashboard_data['away'].get('team_name', 'Away')}. The simulation may have encountered an error.")
             else:
                 st.info("Run a simulation to see the Player Level validation data here.")
 
@@ -756,3 +778,4 @@ def main():
 
     with tab9:
         render_special_teams_validation_tab(results_for_current_game)
+
