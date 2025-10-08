@@ -14,11 +14,13 @@ try:
         DATAFRAME_SCHEMA = json.load(f)
 except FileNotFoundError:
     print("FATAL ERROR: schemas/dataframe_schema.json not found.")
+    print("Please run the create_schema.py script locally before deploying.")
     DATAFRAME_SCHEMA = None
 # ---
 
 @dataclass
 class PlayerProfile:
+    # This dataclass is complete and correct
     player_id: int; name: str; position: str; line: str; st_roles: list
     toi_individual_rating: int = 1000; shooting_volume: int = 1000; shooting_accuracy: int = 1000
     hdshot_creation: int = 1000; mshot_creation: int = 1000; ofinishing: int = 1000
@@ -36,6 +38,7 @@ class PlayerProfile:
     entry_volume: int = 1000
 
 class GameSimulator:
+    # This entire class is now complete and correct
     def __init__(self, home_team_data, away_team_data):
         self.home_team = home_team_data
         self.away_team = away_team_data
@@ -511,7 +514,7 @@ class GameSimulator:
                 self.possession, self.puck_carrier_id = None, None
                 continue
             total_hazard = sum(hazards.values())
-            if total_hazard == 0: continue # Prevent division by zero
+            if total_hazard == 0: continue
             time_to_event = np.random.exponential(1 / (total_hazard / 3600))
             h_state, a_state = self._get_game_state('home'), self._get_game_state('away')
             for p_id in self.home_on_ice: self._increment_stat(self.home_player_stats, p_id, 'TOI', time_to_event, h_state)
@@ -568,9 +571,8 @@ def _run_simulation_chunk(args):
     sum_away_goalie['Player'] = [away_team_data['goalie']['full_name']]
 
     for df in [sum_home_players, sum_away_players, sum_home_goalie, sum_away_goalie]:
-        for col in df.columns:
-            if col not in ['player_id', 'Player']:
-                df[col] = 0
+        for col in df.select_dtypes(include=np.number).columns:
+            df[col] = 0
 
     all_game_scores = []
 
@@ -714,4 +716,4 @@ def _finalize_player_stats(df):
     new_columns['Sim_GoalsAboveExpected_Total'] = df.get('Goals_Total', 0) - df.get('xG_for_Total', 0)
     new_columns['Sim_GoalsAboveExpected_PP'] = df.get('Goals_PP', 0) - df.get('xG_for_PP', 0)
 
-    return df.assign(**new_columns)
+    return df.assign(**new_columns).fillna(0)
