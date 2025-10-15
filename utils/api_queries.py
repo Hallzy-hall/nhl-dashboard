@@ -129,9 +129,9 @@ def sync_all_player_data():
     Uses print() for logging to be compatible with automation.
     """
     print("--- Starting Player Roster Sync ---")
-    
+
     supabase = _create_supabase_client()
-    
+
     api_players_df = _fetch_all_players_from_api()
     if api_players_df.empty:
         print("ERROR: Could not fetch player data from API. Aborting sync.")
@@ -139,7 +139,7 @@ def sync_all_player_data():
 
     db_players_df = pd.DataFrame(supabase.table('players').select('player_id, full_name, team, team_id').execute().data)
     db_players_df['player_id'] = db_players_df['player_id'].astype(str)
-    
+
     print(f"Fetched {len(api_players_df)} players from API. Found {len(db_players_df)} players in the database.")
 
     comparison_df = pd.merge(
@@ -159,8 +159,8 @@ def sync_all_player_data():
     if not new_players.empty:
         print(f"Found {len(new_players)} new players to add.")
         cols_to_insert = [
-            'player_id', 'full_name_api', 'position', 'jersey_number', 'team_api', 
-            'birth_date', 'birth_city', 'birth_country', 'headshot_url', 'team_id_api', 
+            'player_id', 'full_name_api', 'position', 'jersey_number', 'team_api',
+            'birth_date', 'birth_city', 'birth_country', 'headshot_url', 'team_id_api',
             'height_in_inches', 'weight_in_pounds'
         ]
         new_players_to_insert = new_players[cols_to_insert].rename(columns={
@@ -180,19 +180,33 @@ def sync_all_player_data():
                 _handle_ufa_player(supabase, str(row['player_id']), row['full_name_api'])
             else:
                 _update_player_team(supabase, str(row['player_id']), row['full_name_api'], int(row['team_id_api']), row['team_api'])
-            
+
     print("--- Player Roster Sync Complete ---")
 
 def _fetch_all_players_from_api():
     """
-    Gets a comprehensive list of all players (current and recent seasons) from the API.
+    Gets a comprehensive list of all players (current, recent, and prospects) from the API.
     """
     teams_df = get_teams()
     if teams_df.empty: return pd.DataFrame()
 
     unique_player_ids = set()
-    
-    print("Fetching current rosters...")
+
+    # --- NEW SECTION: Fetch Preseason/Prospect Players ---
+    print("Fetching preseason/prospect rosters from club-stats...")
+    for abbr in teams_df['nhl_team_abbr']:
+        try:
+            url = f"https://api-web.nhle.com/v1/club-stats/{abbr}/now"
+            res = requests.get(url, timeout=10).json()
+            for skater in res.get('skaters', []):
+                unique_player_ids.add(skater['playerId'])
+            for goalie in res.get('goalies', []):
+                unique_player_ids.add(goalie['playerId'])
+        except Exception:
+            print(f"  - Could not fetch club-stats for {abbr}")
+    # --- END NEW SECTION ---
+
+    print("\nFetching current rosters...")
     for abbr in teams_df['nhl_team_abbr']:
         try:
             url = f"https://api-web.nhle.com/v1/roster/{abbr}/current"
@@ -229,7 +243,7 @@ def _fetch_all_players_from_api():
             url = f"https://api-web.nhle.com/v1/player/{player_id}/landing"
             res = requests.get(url, timeout=10).json()
             team_abbr = res.get('currentTeamAbbrev')
-            
+
             all_player_details.append({
                 'player_id': str(res['playerId']),
                 'full_name_api': f"{res['firstName']['default']} {res['lastName']['default']}",
@@ -246,7 +260,7 @@ def _fetch_all_players_from_api():
             })
         except Exception:
             continue
-            
+
     return pd.DataFrame(all_player_details)
 
 def _bulk_insert_players(supabase, df):

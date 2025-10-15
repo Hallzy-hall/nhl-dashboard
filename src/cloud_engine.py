@@ -1,9 +1,11 @@
-# src/cloud_engine.py (Updated)
+# src/cloud_engine.py
+
 import requests
 import pandas as pd
 from typing import Dict, Any
 import streamlit as st
 from io import StringIO
+import numpy as np # Add numpy import to handle NaN
 
 def run_cloud_simulations(
     num_sims: int,
@@ -21,34 +23,43 @@ def run_cloud_simulations(
     }
 
     try:
-        cloud_run_url = st.secrets.app_secrets.CLOUD_RUN_SIMULATION_URL 
+        cloud_run_url = st.secrets.app_secrets.CLOUD_RUN_SIMULATION_URL
     except Exception:
         st.error("Could not find CLOUD_RUN_SIMULATION_URL in secrets.toml.")
         return empty_return
+
+    # --- THIS IS THE FIX ---
+    # Convert any NaN values in the lineup DataFrames to None before serialization.
+    # JSON can handle `None` (it becomes `null`), but it cannot handle `NaN`.
+    home_lineup_clean = home_team_data["lineup"].replace({np.nan: None})
+    away_lineup_clean = away_team_data["lineup"].replace({np.nan: None})
+    # ----------------------
 
     # Prepare the payload for the API
     payload = {
         "numSims": num_sims,
         "homeTeamData": {
-            "lineup": home_team_data["lineup"].to_dict(orient="records"),
+            # Use the cleaned DataFrames
+            "lineup": home_lineup_clean.to_dict(orient="records"),
             "coach": home_team_data["coach"],
             "goalie": home_team_data["goalie"]
         },
         "awayTeamData": {
-            "lineup": away_team_data["lineup"].to_dict(orient="records"),
+            # Use the cleaned DataFrames
+            "lineup": away_lineup_clean.to_dict(orient="records"),
             "coach": away_team_data["coach"],
             "goalie": away_team_data["goalie"]
         }
     }
 
     try:
-        response = requests.post(cloud_run_url, json=payload, timeout=300) 
+        response = requests.post(cloud_run_url, json=payload, timeout=1200)
         response.raise_for_status() # This will raise an error for non-200 status codes
     except requests.exceptions.RequestException as e:
         st.error(f"Failed to connect to the cloud simulation service: {e}")
         return empty_return
 
-    st.success("✅ Simulation complete! Processing results...")
+    st.success( "✅ Simulation complete! Processing results..." )
     results_json = response.json()
 
     # Reconstruct DataFrames from the JSON response

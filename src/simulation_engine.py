@@ -1,4 +1,4 @@
-# src/simulation_engine.py (Phase 1 - Simplified & Stabilized)
+# src/simulation_engine.py (Phase 1 - Final Fix)
 import numpy as np
 import pandas as pd
 import random
@@ -29,7 +29,6 @@ class PlayerProfile:
 
 class GameSimulator:
     # This class remains unchanged as the core logic is sound.
-    # All previous fixes for goalie data are retained.
     def __init__(self, home_team_data, away_team_data):
         self.home_team = home_team_data
         self.away_team = away_team_data
@@ -73,9 +72,13 @@ class GameSimulator:
         self.home_player_stats = { p.player_id: { 'Player': p.name, 'Total': stat_template(), 'ES': stat_template(), 'PP': stat_template(), 'PK': stat_template() } for p in self.home_players_dict.values() }
         self.away_player_stats = { p.player_id: { 'Player': p.name, 'Total': stat_template(), 'ES': stat_template(), 'PP': stat_template(), 'PK': stat_template() } for p in self.away_players_dict.values() }
         self.home_goalie_stats = stat_template()
+        self.home_goalie_stats = stat_template()
         self.home_goalie_stats['Player'] = self.home_goalie.get('full_name', 'Unknown Goalie')
+        self.home_goalie_stats['player_id'] = self.home_goalie.get('player_id', 999999) # Add player_id
+
         self.away_goalie_stats = stat_template()
         self.away_goalie_stats['Player'] = self.away_goalie.get('full_name', 'Unknown Goalie')
+        self.away_goalie_stats['player_id'] = self.away_goalie.get('player_id', 999998) # Add player_id
 
     def _get_game_state(self, for_team):
         if self.home_skaters == self.away_skaters: return 'ES'
@@ -204,7 +207,7 @@ class GameSimulator:
         if game_state_off == 'PP':
             if self.zone in ['offensive', 'pp_setup']:
                 shot_mult, pass_mult, turnover_mult = self.params['pp_logic']['shot_multiplier'], self.params['pp_logic']['pass_multiplier'], self.params['pp_logic']['turnover_multiplier']
-                pk_suppress_rating = np.mean([self._get_player_rating(p.player_id, 'd_hd_shot_suppression_rating') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())])
+                pk_suppress_rating = np.mean([self._get_player_rating(p.player_id, 'd_hd_shot_suppression_rating') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())]) if (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values()) else 1000
                 pk_suppress = self._convert_rating_to_modifier(pk_suppress_rating, is_defensive=True)
                 pp_vol = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'shooting_volume'))
                 chance_creation_mod = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'pp_chance_creation'))
@@ -224,7 +227,7 @@ class GameSimulator:
         elif game_state_off == 'PK':
             if self.zone == 'defensive':
                 pk_clear = self._convert_rating_to_modifier(self._get_player_rating(carrier_id, 'd_breakout_ability'))
-                pp_pressure_rating = np.mean([self._get_player_rating(p.player_id, 'oprime_playmaking') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())])
+                pp_pressure_rating = np.mean([self._get_player_rating(p.player_id, 'oprime_playmaking') for p in (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values())]) if (self.away_on_ice.values() if self.possession == 'home' else self.home_on_ice.values()) else 1000
                 pp_pressure = self._convert_rating_to_modifier(pp_pressure_rating, is_defensive=True)
                 hazards['pk_clear_attempt'] = BASE_HAZARD_RATES['dump_out_exit'] * self.params['pk_logic']['clear_attempt_multiplier'] * pk_clear * pp_pressure
                 hazards['turnover'] = BASE_HAZARD_RATES['turnover'] * self.params['pk_logic']['turnover_multiplier'] / pk_clear
@@ -273,8 +276,9 @@ class GameSimulator:
             self._increment_stat(off_stats, p_id, f"OnIce_{danger_prefix}CF", 1, possessing_team_state)
         avg_block_rating = np.mean([self._get_player_rating(p.player_id, 'd_shot_blocking') for p in def_players.values()]) if def_players else 1000
         if random.random() < self.params['shot_resolution']['base_block_prob'] * self._convert_rating_to_modifier(avg_block_rating, is_defensive=True):
-            blocker = random.choice(list(def_players.values()))
-            self._increment_stat(def_stats, blocker.player_id, 'Blocks', 1, defending_team_state)
+            if def_players:
+                blocker = random.choice(list(def_players.values()))
+                self._increment_stat(def_stats, blocker.player_id, 'Blocks', 1, defending_team_state)
             self.possession = 'away' if self.possession == 'home' else 'home'
             self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
             return
@@ -306,7 +310,7 @@ class GameSimulator:
             if other_on_ice:
                 other_players_list = list(other_on_ice.values())
                 assist_weights = [self._get_player_rating(p.player_id, 'oprime_playmaking') for p in other_players_list]
-                avg_playmaking_mod = self._convert_rating_to_modifier(np.mean(assist_weights))
+                avg_playmaking_mod = self._convert_rating_to_modifier(np.mean(assist_weights)) if other_players_list else 1.0
                 if random.random() < (self.params['shot_resolution']['primary_assist_prob'] * avg_playmaking_mod):
                     primary_assister = random.choices(other_players_list, weights=assist_weights, k=1)[0]
                     self._increment_stat(off_stats, primary_assister.player_id, 'Assists', 1, possessing_team_state)
@@ -356,7 +360,10 @@ class GameSimulator:
             if receivers:
                 receiver_list = list(receivers.values())
                 weights = [(self._get_player_rating(p.player_id, 'shooting_volume') + self._get_player_rating(p.player_id, 'ocycle_play')) for p in receiver_list]
-                self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
+                if sum(weights) > 0:
+                    self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
+                else:
+                    self.puck_carrier_id = random.choice(receiver_list).player_id
             else:
                 self.possession = 'away' if self.possession == 'home' else 'home'
                 self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
@@ -376,7 +383,10 @@ class GameSimulator:
             if receivers:
                 receiver_list = list(receivers.values())
                 weights = [self._get_player_rating(p.player_id, 'entry_volume') for p in receiver_list]
-                self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
+                if sum(weights) > 0:
+                    self.puck_carrier_id = random.choices(receiver_list, weights=weights, k=1)[0].player_id
+                else:
+                    self.puck_carrier_id = random.choice(receiver_list).player_id
             else:
                 self.possession = 'away' if self.possession == 'home' else 'home'
                 self.puck_carrier_id = self._resolve_neutral_zone_puck_distribution(self.possession)
@@ -467,6 +477,7 @@ class GameSimulator:
         rating_col = 'min_penalty' if penalty_type == 'minor_penalty' else 'maj_penalty'
         def_players_list = list(def_players.values())
         weights = [(2000 - self._get_player_rating(p.player_id, rating_col)) for p in def_players_list]
+        if sum(weights) <= 0: return # Avoid error if all weights are zero
         penalized_player = random.choices(def_players_list, weights=weights, k=1)[0]
         self.penalty_box.append({'player_id': penalized_player.player_id, 'team': def_team, 'time_remaining': (2 if penalty_type == 'minor_penalty' else 5) * 60})
         self._increment_stat(pk_stats, penalized_player.player_id, 'Penalty Minutes', 2, self._get_game_state(def_team))
@@ -538,92 +549,87 @@ class GameSimulator:
                 self._resolve_dump_in()
             elif 'penalty' in chosen_event: self._resolve_penalty(chosen_event)
             elif chosen_event == 'line_change': self._resolve_faceoff()
+
+        # THIS BLOCK IS NOW CORRECTLY INDENTED
         home_flat_stats = [ {'player_id': pid, 'Player': data['Player'], **{f"{sn}_{st}": sv for st, s in data.items() if st != 'Player' for sn, sv in s.items()}} for pid, data in self.home_player_stats.items() ]
         away_flat_stats = [ {'player_id': pid, 'Player': data['Player'], **{f"{sn}_{st}": sv for st, s in data.items() if st != 'Player' for sn, sv in s.items()}} for pid, data in self.away_player_stats.items() ]
         return { 'home_players': pd.DataFrame(home_flat_stats), 'away_players': pd.DataFrame(away_flat_stats), 'home_goalie': pd.DataFrame([self.home_goalie_stats]), 'away_goalie': pd.DataFrame([self.away_goalie_stats]) }
 
-# --- MODIFIED: Phase 1 - Removed Multiprocessing ---
 def run_multiple_simulations(num_sims, home_team_data, away_team_data):
     """
-    Runs multiple simulations in a single process to simplify and stabilize.
-    This is slower but more robust for debugging.
+    Runs multiple simulations and aggregates the results efficiently.
     """
     print(f"Running {num_sims} simulations in a single process...")
 
-    # Initialize empty lists to hold results from each simulation
-    all_home_players = []
-    all_away_players = []
-    all_home_goalies = []
-    all_away_goalies = []
-    all_game_scores = []
+    # A list to hold the raw results dictionary from each simulation run
+    all_results = []
 
     for i in range(num_sims):
-        # Add a progress print statement
         if (i + 1) % 100 == 0:
             print(f"  ...completed {i + 1}/{num_sims} simulations")
 
         sim = GameSimulator(home_team_data, away_team_data)
         results = sim.run_simulation()
-        
-        all_home_players.append(results['home_players'])
-        all_away_players.append(results['away_players'])
-        all_home_goalies.append(results['home_goalie'])
-        all_away_goalies.append(results['away_goalie'])
-
-        home_goals = int(results['home_players']['Goals_Total'].sum())
-        away_goals = int(results['away_players']['Goals_Total'].sum())
-        all_game_scores.append((home_goals, away_goals))
+        all_results.append(results)
 
     print("All simulations completed. Aggregating results...")
 
-    # --- MODIFIED: Robust Aggregation ---
-    # Concatenate all result DataFrames. This handles missing columns gracefully.
-    # If a column doesn't exist in one sim, concat fills it with NaN.
-    # We then fillna(0) to clean it up.
-    total_home_players = pd.concat(all_home_players).groupby('player_id').sum().reset_index()
-    total_away_players = pd.concat(all_away_players).groupby('player_id').sum().reset_index()
-    total_home_goalie = pd.concat(all_home_goalies).sum()
-    total_away_goalie = pd.concat(all_away_goalies).sum()
+    # --- START: SIMPLIFIED & CORRECTED AGGREGATION ---
 
-    # Calculate averages
-    avg_home_players = total_home_players.copy()
-    avg_away_players = total_away_players.copy()
-    avg_home_goalie = total_home_goalie.copy()
-    avg_away_goalie = total_away_goalie.copy()
+    # 1. Concatenate all DataFrames from the results at once
+    # This is more efficient than appending to lists in a loop
+    full_home_df = pd.concat([res['home_players'] for res in all_results])
+    full_away_df = pd.concat([res['away_players'] for res in all_results])
+    full_home_goalie_df = pd.concat([res['home_goalie'] for res in all_results])
+    full_away_goalie_df = pd.concat([res['away_goalie'] for res in all_results])
+    all_game_scores = [
+        (
+            int(res['home_players']['Goals_Total'].sum()),
+            int(res['away_players']['Goals_Total'].sum())
+        ) for res in all_results
+    ]
 
-    if num_sims > 0:
-        numeric_cols_home = avg_home_players.select_dtypes(include=np.number).columns.drop('player_id', errors='ignore')
-        numeric_cols_away = avg_away_players.select_dtypes(include=np.number).columns.drop('player_id', errors='ignore')
-        
-        avg_home_players[numeric_cols_home] /= num_sims
-        avg_away_players[numeric_cols_away] /= num_sims
-        avg_home_goalie /= num_sims
-        avg_away_goalie /= num_sims
+    # 2. Group by both ID and Name to sum stats while preserving the name column
+    # This is the core fix for the KeyError
+    total_home_players = full_home_df.groupby(['player_id', 'Player']).sum()
+    total_away_players = full_away_df.groupby(['player_id', 'Player']).sum()
+    total_home_goalie = full_home_goalie_df.groupby(['player_id', 'Player']).sum()
+    total_away_goalie = full_away_goalie_df.groupby(['player_id', 'Player']).sum()
 
-    # Finalize stats
+    # 3. Calculate the average by dividing by the number of simulations
+    avg_home_players = (total_home_players / num_sims).reset_index()
+    avg_away_players = (total_away_players / num_sims).reset_index()
+    avg_home_goalie = (total_home_goalie / num_sims).reset_index()
+    avg_away_goalie = (total_away_goalie / num_sims).reset_index()
+
+    # --- END: AGGREGATION ---
+
+    # Finalize stats (calculate per/60, etc.)
     avg_home_players = _finalize_player_stats(avg_home_players)
     avg_away_players = _finalize_player_stats(avg_away_players)
 
-    # Create team total summaries from the now-complete player dataframes
+    # Create team total summaries from the already averaged data
     output_cols = ['Goals_Total', 'Assists_Total', 'Shots_Total', 'Shot Attempts_Total', 'Blocks_Total', 'Penalty Minutes_Total']
     
-    # Ensure columns exist before trying to sum them
-    existing_output_cols_home = [col for col in output_cols if col in avg_home_players.columns]
-    existing_output_cols_away = [col for col in output_cols if col in avg_away_players.columns]
+    # Select only the columns that actually exist in the DataFrame to prevent errors
+    existing_home_cols = [col for col in output_cols if col in avg_home_players.columns]
+    existing_away_cols = [col for col in output_cols if col in avg_away_players.columns]
 
-    avg_home_total = pd.DataFrame(avg_home_players[existing_output_cols_home].sum()).T
-    avg_away_total = pd.DataFrame(avg_away_players[existing_output_cols_away].sum()).T
-
+    avg_home_total = pd.DataFrame(avg_home_players[existing_home_cols].sum()).T
+    avg_away_total = pd.DataFrame(avg_away_players[existing_away_cols].sum()).T
+    
+    # Clean up column names for the total summary
     avg_home_total.columns = [c.replace('_Total', '') for c in avg_home_total.columns]
     avg_away_total.columns = [c.replace('_Total', '') for c in avg_away_total.columns]
-   
+    
+    # Return final dictionary, ensuring all potential NaN values are filled with 0
     return {
-        'home_total': avg_home_total.round(2),
-        'home_players': avg_home_players.round(2),
-        'away_total': avg_away_total.round(2),
-        'away_players': avg_away_players.round(2),
-        'home_goalie_validation': avg_home_goalie.to_frame().T.round(2),
-        'away_goalie_validation': avg_away_goalie.to_frame().T.round(2),
+        'home_total': avg_home_total.round(2).fillna(0),
+        'home_players': avg_home_players.round(2).fillna(0),
+        'away_total': avg_away_total.round(2).fillna(0),
+        'away_players': avg_away_players.round(2).fillna(0),
+        'home_goalie_validation': avg_home_goalie.round(2).fillna(0),
+        'away_goalie_validation': avg_away_goalie.round(2).fillna(0),
         'all_game_scores': all_game_scores
     }
 
@@ -657,10 +663,7 @@ def _finalize_player_stats(df):
     calculate_per_60(df, es_stats, 'ES')
     calculate_per_60(df, pp_stats, 'PP')
     calculate_per_60(df, pk_stats, 'PK')
-
-    # --- THIS IS THE DEFINITIVE FIX ---
-    # The default value for .get() MUST be a scalar 0, not a Series.
-    # This allows pandas to correctly broadcast the scalar for the comparison across all rows.
+    
     shot_attempts_mask = df.get('Shot Attempts_Total', 0) > 0
     df['Sim_ShotAccuracy_Pct'] = np.where(shot_attempts_mask, (df.get('Shots_Total', 0) / df.get('Shot Attempts_Total', 1)) * 100, 0.0)
     
@@ -669,7 +672,6 @@ def _finalize_player_stats(df):
 
     faceoffs_mask = df.get('Faceoffs_Taken_Total', 0) > 0
     df['Sim_Faceoff_Pct'] = np.where(faceoffs_mask, (df.get('Faceoffs_Won_Total', 0) / df.get('Faceoffs_Taken_Total', 1)) * 100, 0.0)
-    # --- END FIX ---
 
     df['Sim_GoalsAboveExpected_Total'] = df.get('Goals_Total', 0) - df.get('xG_for_Total', 0)
     df['Sim_GoalsAboveExpected_PP'] = df.get('Goals_PP', 0) - df.get('xG_for_PP', 0)
