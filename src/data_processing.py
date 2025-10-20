@@ -4,7 +4,6 @@ import json
 import numpy as np
 import datetime
 from supabase import create_client, Client
-from .calculations import calculate_toi_distribution
 from .definitions import all_definitions
 from utils.db_queries import get_simulation_roster
 
@@ -25,7 +24,7 @@ def init_connection():
             supabase = create_client(url, key)
         except Exception as e:
             st.error(f"Failed to connect to Supabase. Please check your secrets.toml file. Error: {e}")
-            supabase = None # Ensure supabase is None if connection fails
+            supabase = None
     return supabase
 
 class CustomEncoder(json.JSONEncoder):
@@ -41,10 +40,20 @@ class CustomEncoder(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, pd.DataFrame):
             return obj.to_dict(orient='records')
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
         return super(CustomEncoder, self).default(obj)
 
-def save_simulation_results(game_id: int, results_data: dict):
-    """Saves or updates simulation results for a given game_id in the database."""
+def save_simulation_results(game_id: int, results_payload: dict, sim_input: dict, is_baseline: bool = False):
+    """
+    Saves the results of a simulation to the Supabase table, creating a new row for each run.
+
+    Args:
+        game_id (int): The unique ID for the game.
+        results_payload (dict): The full dictionary containing 'raw_data', 'main_markets', etc.
+        sim_input (dict): The home_sim_data and away_sim_data used for the simulation run.
+        is_baseline (bool): Flag to indicate if this is a foundational Poisson simulation.
+    """
     if supabase is None:
         init_connection()
     if supabase is None:
@@ -52,24 +61,47 @@ def save_simulation_results(game_id: int, results_data: dict):
         return
 
     try:
-        # Serialize the dictionary to a JSON string using our custom encoder
-        json_string = json.dumps(results_data, cls=CustomEncoder)
-        
-        timestamp = datetime.datetime.utcnow().isoformat()
-        
-        supabase.table('simulation_results').upsert({
-            'game_id': game_id,
-            'results_data': json_string,
-            'simulation_timestamp': timestamp
-        }).execute()
-        st.toast(f"Simulation results saved successfully for game {game_id}!", icon="✅")
-    except Exception as e:
-        st.error(f"An error occurred while saving simulation results: {e}")
+        # Create the full payload that includes both the inputs and outputs of the sim
+        full_payload_to_save = {
+            "simulation_outputs": results_payload,
+            "simulation_inputs": sim_input 
+        }
 
-def load_simulation_results(game_id: int):
+        # The data to be inserted into the database row
+        data_to_insert = {
+            "game_id": game_id,
+            "results_data": json.dumps(full_payload_to_save, cls=CustomEncoder),
+            "is_baseline": is_baseline,
+            "simulation_timestamp": datetime.datetime.utcnow().isoformat()
+        }
+
+        # Use insert to create a new row for every simulation run.
+        # This preserves the history and allows us to find the true baseline.
+        response = supabase.table("simulation_results").insert(data_to_insert).execute()
+
+        if response.data:
+            st.toast(f"Simulation results saved successfully for game {game_id}!", icon="✅")
+        else:
+            st.error(f"Error saving results: {response.error}")
+
+    except Exception as e:
+        st.error(f"An exception occurred while saving simulation results: {e}")
+
+def _reconstruct_dataframes(parsed_data: dict) -> dict:
+    """Helper to convert lists back to DataFrames after loading from JSON."""
+    if parsed_data and 'simulation_outputs' in parsed_data:
+        outputs = parsed_data['simulation_outputs']
+        if 'raw_data' in outputs and outputs['raw_data']:
+            raw_data = outputs['raw_data']
+            for key in ['home_players', 'away_players', 'home_goalie', 'away_goalie', 'home_total', 'away_total']:
+                if key in raw_data and isinstance(raw_data.get(key), list):
+                    raw_data[key] = pd.DataFrame(raw_data[key])
+    return parsed_data
+
+def load_simulation_results(game_id: int) -> dict:
     """
-    Loads simulation results for a given game_id from the database and
-    reconstructs necessary DataFrames.
+    Loads the MOST RECENT simulation results for a given game_id, regardless of baseline status.
+    This is used to populate the dashboard on initial load.
     """
     if supabase is None:
         init_connection()
@@ -78,55 +110,64 @@ def load_simulation_results(game_id: int):
         return None
 
     try:
-        response = supabase.table('simulation_results').select('results_data').eq('game_id', game_id).single().execute()
-        if response.data and 'results_data' in response.data:
-            results_data = response.data['results_data']
-            
-            parsed_data = None
-            if isinstance(results_data, dict):
-                parsed_data = results_data
-            elif isinstance(results_data, str):
-                parsed_data = json.loads(results_data)
-
-            # --- FIX: Convert lists back into DataFrames after loading ---
-            if parsed_data:
-                if 'raw_data' in parsed_data and parsed_data['raw_data']:
-                    raw_data = parsed_data['raw_data']
-                    if 'home_players' in raw_data and isinstance(raw_data.get('home_players'), list):
-                        raw_data['home_players'] = pd.DataFrame(raw_data['home_players'])
-                    if 'away_players' in raw_data and isinstance(raw_data.get('away_players'), list):
-                        raw_data['away_players'] = pd.DataFrame(raw_data['away_players'])
-                return parsed_data
-            # --- END FIX ---
-                
+        # Fetch the single most recent entry for the game_id
+        response = supabase.table("simulation_results") \
+            .select("results_data") \
+            .eq("game_id", game_id) \
+            .order("simulation_timestamp", desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if response.data:
+            results_data = response.data[0]['results_data']
+            parsed_data = json.loads(results_data) if isinstance(results_data, str) else results_data
+            return _reconstruct_dataframes(parsed_data)
         return None
     except Exception as e:
+        # This is not an error, it just means no previous results exist.
+        return None
+
+# --- NEW FUNCTION ---
+def load_baseline_results(game_id: int) -> dict:
+    """
+    Loads the most recent BASELINE simulation results for a given game_id.
+    This is used as the foundation for the "Fast Sim" delta calculation.
+    """
+    if supabase is None:
+        init_connection()
+    if supabase is None:
+        st.error("Database connection not available. Cannot load baseline.")
+        return None
+
+    try:
+        # Fetch the single most recent entry flagged as a baseline
+        response = supabase.table("simulation_results") \
+            .select("results_data") \
+            .eq("game_id", game_id) \
+            .eq("is_baseline", True) \
+            .order("simulation_timestamp", desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if response.data:
+            results_data = response.data[0]['results_data']
+            parsed_data = json.loads(results_data) if isinstance(results_data, str) else results_data
+            return _reconstruct_dataframes(parsed_data)
+        return None
+    except Exception as e:
+        st.error(f"An error occurred while loading baseline results: {e}")
         return None
 
 # ==============================================================================
-# --- DATA PROCESSING FUNCTIONS ---
+# --- DATA PROCESSING FUNCTIONS (Unchanged from your original file) ---
 # ==============================================================================
 
-def structure_data_for_sim():
-    """Placeholder for old Lineup Builder functionality."""
-    pass
-
 def run_toi_calculation(pim_for: int, pim_against: int):
-    """
-    Placeholder for old Lineup Builder TOI calculation.
-    This function is likely deprecated but is kept to prevent import errors
-    from the lineup_builder_page.py file.
-    """
     st.warning("`run_toi_calculation` is a deprecated function.")
     return {}
 
 def structure_dashboard_data_for_sim(team_type: str):
-    """
-    Prepares the roster and all player ratings for the main dashboard simulation
-    by calling a single database function.
-    """
     team_data = st.session_state.dashboard_data[team_type]
-    
     team_id = team_data.get('team_id')
     if not team_id:
         return []

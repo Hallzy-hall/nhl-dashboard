@@ -3,7 +3,9 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 import pandas as pd
-
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 # Import page rendering functions and queries
 from app_pages import dashboard_page, lineup_builder_page, betting_lines_page, database_page
 from utils.db_queries import get_schedule, get_teams
