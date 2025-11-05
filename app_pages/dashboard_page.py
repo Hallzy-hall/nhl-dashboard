@@ -22,13 +22,14 @@ from src.cloud_engine import run_cloud_simulations
 from src.calculations import calculate_betting_odds, calculate_player_props
 from src.simulation_engine import _finalize_player_stats
 
-# --- UPDATED: Import the ResultAdjuster ---
+# --- UPDATED: Import the ResultAdjuster instead of MarkovSimulator ---
 from src.results_adjuster import ResultAdjuster
 
 
 # ==============================================================================
-# --- HELPER & RENDER FUNCTIONS (Unchanged) ---
+# --- HELPER & RENDER FUNCTIONS (Restored to Original State) ---
 # ==============================================================================
+
 def style_diff_by_percent(row):
     PERCENT_CAP = 0.30
     green_cmap = matplotlib.cm.get_cmap('Greens')
@@ -42,7 +43,8 @@ def style_diff_by_percent(row):
             if pd.isna(actual_val) or actual_val == 0:
                 continue
             percent_diff = diff_val / actual_val
-            invert_color = any(x in col_name for x in ['CA/60', 'GvA/60', 'Pen/60'])
+            # Invert color for stats where lower is better
+            invert_color = any(x in col_name for x in ['CA/60', 'GvA/60', 'Pen/60', 'OnIce_HDCA', 'OnIce_MDCA', 'OnIce_LDCA'])
             if (percent_diff > 0 and not invert_color) or (percent_diff < 0 and invert_color):
                 norm_val = min(abs(percent_diff), PERCENT_CAP) / PERCENT_CAP
                 color_map_val = 0.3 + (0.7 * norm_val)
@@ -83,7 +85,7 @@ def _display_stats_for_tab(results, state_key, per_60=False):
     if not results:
         st.info("Run a simulation to see the output here.")
         return
-    
+   
     raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
     if not raw_results:
         st.warning("Raw simulation data not found in the payload.")
@@ -103,21 +105,128 @@ def _display_stats_for_tab(results, state_key, per_60=False):
     st.dataframe(pd.DataFrame(raw_results.get('away_total', [])), use_container_width=True, hide_index=True)
     st.dataframe(_prepare_display_df(raw_results.get('away_players', []), state_key, per_60), use_container_width=True, hide_index=True)
 
+def _render_validation_df(sim_df, actuals_df, columns_map, team_name):
+    """Helper to merge, calculate diff, and display a styled validation DataFrame."""
+    if sim_df.empty:
+        st.write(f"No simulation data available for {team_name}.")
+        return
+    if actuals_df.empty:
+        st.write(f"No actuals data available for {team_name}.")
+        return
+
+    # Ensure player_id is the correct type for merging
+    sim_df['player_id'] = sim_df['player_id'].astype(int)
+    actuals_df['player_id'] = actuals_df['player_id'].astype(int)
+    
+    merged_df = pd.merge(sim_df, actuals_df, on='player_id', how='left', suffixes=('', '_Actual'))
+    
+    display_cols = ['Player']
+    for sim_col, actual_col in columns_map.items():
+        if sim_col in merged_df.columns and actual_col in merged_df.columns:
+            diff_col = sim_col.replace('Sim_', '') + '_Diff'
+            merged_df[diff_col] = merged_df[sim_col] - merged_df[actual_col]
+            display_cols.extend([sim_col, actual_col, diff_col])
+
+    final_df = merged_df[[col for col in display_cols if col in merged_df.columns]].copy().round(2)
+    st.dataframe(final_df.style.apply(style_diff_by_percent, axis=1), use_container_width=True, hide_index=True)
+
 def render_shooting_validation_tab(results):
-    pass
+    if not results: st.info("Run a simulation to see the output here."); return
+    raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
+    if not raw_results: st.warning("Raw simulation data not found."); return
+
+    home_players = pd.DataFrame(raw_results.get('home_players', []))
+    away_players = pd.DataFrame(raw_results.get('away_players', []))
+    actuals = get_player_shooting_actuals()
+
+    cols_map = {
+        'Sim_Shooting_Pct': 'Shooting_Pct_Actual',
+        'Sim_ShotAccuracy_Pct': 'ShotAccuracy_Pct_Actual',
+        'Sim_GoalsAboveExpected_Total': 'GoalsAboveExpected_Total_Actual',
+    }
+    st.subheader(f"{st.session_state.dashboard_data['home'].get('team_name', 'Home')} Shooting Validation")
+    _render_validation_df(home_players, actuals, cols_map, "Home")
+    st.divider()
+    st.subheader(f"{st.session_state.dashboard_data['away'].get('team_name', 'Away')} Shooting Validation")
+    _render_validation_df(away_players, actuals, cols_map, "Away")
+
 def render_possession_validation_tab(results):
-    pass
+    if not results: st.info("Run a simulation to see the output here."); return
+    raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
+    if not raw_results: st.warning("Raw simulation data not found."); return
+
+    home_players = pd.DataFrame(raw_results.get('home_players', []))
+    away_players = pd.DataFrame(raw_results.get('away_players', []))
+    actuals = get_player_possession_actuals()
+
+    cols_map = {
+        'Sim_Faceoff_Pct': 'Faceoff_Pct_Actual',
+        'Sim_Giveaways_per_60_ES': 'Giveaways_per_60_ES_Actual',
+        'Sim_Takeaways_per_60_ES': 'Takeaways_per_60_ES_Actual',
+    }
+    st.subheader(f"{st.session_state.dashboard_data['home'].get('team_name', 'Home')} Possession Validation")
+    _render_validation_df(home_players, actuals, cols_map, "Home")
+    st.divider()
+    st.subheader(f"{st.session_state.dashboard_data['away'].get('team_name', 'Away')} Possession Validation")
+    _render_validation_df(away_players, actuals, cols_map, "Away")
+
 def render_transition_validation_tab(results):
-    pass
+    if not results: st.info("Run a simulation to see the output here."); return
+    raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
+    if not raw_results: st.warning("Raw simulation data not found."); return
+
+    home_players = pd.DataFrame(raw_results.get('home_players', []))
+    away_players = pd.DataFrame(raw_results.get('away_players', []))
+    actuals = get_player_transition_actuals()
+
+    cols_map = {
+        'Sim_ControlledEntries_per_60_ES': 'ControlledEntries_per_60_ES_Actual',
+        'Sim_ControlledExits_per_60_ES': 'ControlledExits_per_60_ES_Actual',
+    }
+    st.subheader(f"{st.session_state.dashboard_data['home'].get('team_name', 'Home')} Transition Validation")
+    _render_validation_df(home_players, actuals, cols_map, "Home")
+    st.divider()
+    st.subheader(f"{st.session_state.dashboard_data['away'].get('team_name', 'Away')} Transition Validation")
+    _render_validation_df(away_players, actuals, cols_map, "Away")
+
 def render_defense_validation_tab(results):
-    pass
+    if not results: st.info("Run a simulation to see the output here."); return
+    raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
+    if not raw_results: st.warning("Raw simulation data not found."); return
+
+    home_players = pd.DataFrame(raw_results.get('home_players', []))
+    away_players = pd.DataFrame(raw_results.get('away_players', []))
+    actuals = get_player_defense_actuals()
+
+    cols_map = {
+        'Sim_Blocks_per_60_ES': 'Blocks_per_60_ES_Actual',
+        'Sim_EntryDenials_per_60_ES': 'EntryDenials_per_60_ES_Actual',
+    }
+    st.subheader(f"{st.session_state.dashboard_data['home'].get('team_name', 'Home')} Defense Validation")
+    _render_validation_df(home_players, actuals, cols_map, "Home")
+    st.divider()
+    st.subheader(f"{st.session_state.dashboard_data['away'].get('team_name', 'Away')} Defense Validation")
+    _render_validation_df(away_players, actuals, cols_map, "Away")
+
 def render_special_teams_validation_tab(results):
-    pass
+    if not results: st.info("Run a simulation to see the output here."); return
+    raw_results = results.get('simulation_outputs', {}).get('raw_data', {})
+    if not raw_results: st.warning("Raw simulation data not found."); return
 
+    home_players = pd.DataFrame(raw_results.get('home_players', []))
+    away_players = pd.DataFrame(raw_results.get('away_players', []))
+    actuals = get_player_special_teams_actuals()
 
-# ==============================================================================
-# --- MAIN APPLICATION LOGIC ---
-# ==============================================================================
+    cols_map = {
+        'Sim_OnIce_CF_per_60_PP': 'OnIce_CF_per_60_PP_Actual',
+        'Sim_PK_Clears_per_60_PK': 'PK_Clears_per_60_PK_Actual',
+        'Sim_Blocks_per_60_PK': 'Blocks_per_60_PK_Actual',
+    }
+    st.subheader(f"{st.session_state.dashboard_data['home'].get('team_name', 'Home')} Special Teams Validation")
+    _render_validation_df(home_players, actuals, cols_map, "Home")
+    st.divider()
+    st.subheader(f"{st.session_state.dashboard_data['away'].get('team_name', 'Away')} Special Teams Validation")
+    _render_validation_df(away_players, actuals, cols_map, "Away")
 
 def main():
     if 'dashboard_data' not in st.session_state:
@@ -128,7 +237,7 @@ def main():
         st.session_state['loaded_game_id'] = None
     if 'schedule' not in st.session_state:
         st.session_state.schedule = get_schedule()
-    
+   
     schedule_df = st.session_state.schedule
     current_game_id = st.session_state.get('selected_game_id')
 
@@ -146,7 +255,7 @@ def main():
                     _apply_saved_state('home', saved_state)
                     _apply_saved_state('away', saved_state)
                     st.toast("Loaded saved lineup configuration!", icon="📝")
-                
+               
                 saved_results = load_simulation_results(current_game_id)
                 if saved_results:
                     st.session_state.all_sim_results[current_game_id] = saved_results
@@ -154,11 +263,11 @@ def main():
                 st.session_state.loaded_game_id = current_game_id
             else:
                 st.warning("Selected game not found in schedule.")
-    
+   
     results_for_current_game = st.session_state.all_sim_results.get(current_game_id)
    
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Lineups", "Output", "per/60", "Player Level", "Shooting", "Possession", "Transition", "Defense", "Specialty Teams"])
-    
+   
     with tab1:
         action_col, odds_col = st.columns([1, 3])
         with action_col:
@@ -168,20 +277,20 @@ def main():
                 else:
                     home_lineup_data = structure_dashboard_data_for_sim('home')
                     away_lineup_data = structure_dashboard_data_for_sim('away')
-                    
+                   
                     if not home_lineup_data or not away_lineup_data:
                         st.error("Lineups are incomplete.")
                     else:
                         home_sim_data = {
-                            'lineup': pd.DataFrame(home_lineup_data), 
-                            'coach': st.session_state.dashboard_data['home'].get('coach_data'), 
+                            'lineup': pd.DataFrame(home_lineup_data),
+                            'coach': st.session_state.dashboard_data['home'].get('coach_data'),
                             'goalie': st.session_state.dashboard_data['home'].get('starting_goalie'),
                             'lines': st.session_state.dashboard_data['home'].get('lines', {}),
                             'id': st.session_state.dashboard_data['home'].get('team_id')
                         }
                         away_sim_data = {
-                            'lineup': pd.DataFrame(away_lineup_data), 
-                            'coach': st.session_state.dashboard_data['away'].get('coach_data'), 
+                            'lineup': pd.DataFrame(away_lineup_data),
+                            'coach': st.session_state.dashboard_data['away'].get('coach_data'),
                             'goalie': st.session_state.dashboard_data['away'].get('starting_goalie'),
                             'lines': st.session_state.dashboard_data['away'].get('lines', {}),
                             'id': st.session_state.dashboard_data['away'].get('team_id')
@@ -190,47 +299,39 @@ def main():
 
                         save_dashboard_state(current_game_id, 'home', st.session_state.dashboard_data['home'])
                         save_dashboard_state(current_game_id, 'away', st.session_state.dashboard_data['away'])
-                        
+                       
                         is_initial_sim = st.session_state.sim_mode_toggle
                         final_results_payload = None
 
                         with st.spinner("Running simulations..."):
                             if is_initial_sim:
+                                st.info("Running Initial Simulation...")
                                 raw_results = run_cloud_simulations(1000, home_sim_data, away_sim_data)
                                 main_odds = calculate_betting_odds(raw_results.get('all_game_scores', []))
                                 all_players_df = pd.concat([pd.DataFrame(raw_results['home_players']), pd.DataFrame(raw_results['away_players'])])
                                 player_props = calculate_player_props(all_players_df, {}, {})
                                 final_results_payload = {"raw_data": raw_results, "main_markets": main_odds, "player_props": player_props}
                                 save_simulation_results(current_game_id, final_results_payload, sim_input_data, is_baseline=True)
-                            
-                            else: # --- NEW, FAST SIM LOGIC ---
+                           
+                            else: # --- NEW, FAST SIM LOGIC USING RESULTADJUSTER ---
+                                st.info("Running Fast Simulation Adjustment...")
                                 baseline_payload = load_baseline_results(current_game_id)
                                 
                                 if not baseline_payload:
                                     st.error("No baseline simulation found. Please run an 'Initial Sim' first before using the fast adjuster.")
-                                    return
+                                    st.stop()
                                 
-                                # The baseline payload contains everything needed
-                                baseline_sim_inputs = baseline_payload['simulation_inputs']
-                                baseline_raw_results = baseline_payload['simulation_outputs']['raw_data']
+                                adjuster = ResultAdjuster(
+                                    baseline_payload=baseline_payload, 
+                                    new_home_team_data=home_sim_data, 
+                                    new_away_team_data=away_sim_data
+                                )
                                 
-                                # Convert DataFrames from JSON strings back to DataFrames
-                                baseline_sim_inputs['home']['lineup'] = pd.DataFrame(baseline_sim_inputs['home']['lineup'])
-                                baseline_sim_inputs['away']['lineup'] = pd.DataFrame(baseline_sim_inputs['away']['lineup'])
-                                baseline_raw_results['home_players'] = pd.DataFrame(baseline_raw_results['home_players'])
-                                baseline_raw_results['away_players'] = pd.DataFrame(baseline_raw_results['away_players'])
-                                baseline_raw_results['home_goalie'] = pd.DataFrame(baseline_raw_results['home_goalie'])
-                                baseline_raw_results['away_goalie'] = pd.DataFrame(baseline_raw_results['away_goalie'])
-
-                                # Initialize the adjuster with the full baseline payload and the new tweaked inputs
-                                adjuster = ResultAdjuster(baseline_payload=baseline_payload, new_sim_data=home_sim_data)
-                                
-                                # This is a near-instant calculation
                                 final_raw_results = adjuster.run()
+                                baseline_raw_results = baseline_payload['simulation_outputs']['raw_data']
 
-                                # Recalculate odds and props based on the newly adjusted results
-                                main_odds = calculate_betting_odds(final_raw_results.get('all_game_scores', baseline_raw_results.get('all_game_scores', [])))
-                                all_players_df = pd.concat([final_raw_results['home_players'], final_raw_results['away_players']])
+                                main_odds = calculate_betting_odds(baseline_raw_results.get('all_game_scores', []))
+                                all_players_df = pd.concat([pd.DataFrame(final_raw_results['home_players']), pd.DataFrame(final_raw_results['away_players'])])
                                 player_props = calculate_player_props(all_players_df, {}, {})
                                 final_results_payload = {"raw_data": final_raw_results, "main_markets": main_odds, "player_props": player_props}
                                 save_simulation_results(current_game_id, final_results_payload, sim_input_data, is_baseline=False)
@@ -252,21 +353,43 @@ def main():
                     with c1: st.markdown(f"**Moneyline**"); st.markdown(f"{home_name}: `{betting_odds['moneyline']['home']:+}`"); st.markdown(f"{away_name}: `{betting_odds['moneyline']['away']:+}`")
                     with c2: pl = betting_odds['puckline']; st.markdown(f"**Puckline**"); st.markdown(f"{home_name}: `{pl['home_spread']:+.1f}` `{pl['home_odds']:+}`"); st.markdown(f"{away_name}: `{pl['away_spread']:+.1f}` `{pl['away_odds']:+}`")
                     with c3: total = betting_odds['total']; st.markdown(f"**Total**"); st.markdown(f"Over {total['line']:.1f}: `{total['over']:+}`"); st.markdown(f"Under {total['line']:.1f}: `{total['under']:+}`")
-        
+       
         st.divider()
         teams_df = get_teams()
         render_team_ui('home', teams_df)
         st.divider()
         render_team_ui('away', teams_df)
-    
-    with tab2: _display_stats_for_tab(results_for_current_game, "Total")
-    with tab3: _display_stats_for_tab(results_for_current_game, "ES")
-    with tab4: _display_stats_for_tab(results_for_current_game, "PP")
-    with tab5: _display_stats_for_tab(results_for_current_game, "PK")
-    with tab6: render_shooting_validation_tab(results_for_current_game)
-    with tab7: render_possession_validation_tab(results_for_current_game)
-    with tab8: render_transition_validation_tab(results_for_current_game)
-    with tab9: render_defense_validation_tab(results_for_current_game)
+   
+    with tab2:
+        output_total, output_es, output_pp, output_pk = st.tabs(["Total", "5v5", "PP", "PK"])
+        with output_total:
+             _display_stats_for_tab(results_for_current_game, "Total")
+        with output_es:
+            _display_stats_for_tab(results_for_current_game, "ES")
+        with output_pp:
+            _display_stats_for_tab(results_for_current_game, "PP")
+        with output_pk:
+            _display_stats_for_tab(results_for_current_game, "PK")
+
+    with tab3:
+        per60_total, per60_es, per60_pp, per60_pk = st.tabs(["Total", "5v5", "PP", "PK"])
+        with per60_total:
+            _display_stats_for_tab(results_for_current_game, "Total", per_60=True)
+        with per60_es:
+            _display_stats_for_tab(results_for_current_game, "ES", per_60=True)
+        with per60_pp:
+            _display_stats_for_tab(results_for_current_game, "PP", per_60=True)
+        with per60_pk:
+            _display_stats_for_tab(results_for_current_game, "PK", per_60=True)
+
+    with tab4: 
+        st.info("Player Level tab is a placeholder.")
+    with tab5: render_shooting_validation_tab(results_for_current_game)
+    with tab6: render_possession_validation_tab(results_for_current_game)
+    with tab7: render_transition_validation_tab(results_for_current_game)
+    with tab8: render_defense_validation_tab(results_for_current_game)
+    with tab9: render_special_teams_validation_tab(results_for_current_game)
 
 if __name__ == "__main__":
     main()
+
